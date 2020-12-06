@@ -16,7 +16,7 @@ public class ChatServer extends Thread {
     private ArrayList<Integer> clientPorts;
     private HashSet<String> existingClients;
     public ChatServer() throws IOException {
-        socket = new DatagramSocket(PORT);
+        socket = new MulticastSocket(PORT);
         clientAddresses = new ArrayList();
         clientPorts = new ArrayList();
         existingClients = new HashSet();
@@ -28,13 +28,11 @@ public class ChatServer extends Thread {
             try {
                 Arrays.fill(buf, (byte)0);
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                
                 String content = new String(packet.getData(), 0, packet.getLength());
-                
                 InetAddress clientAddress = packet.getAddress();
                 int clientPort = packet.getPort();
-                
+//                socket.joinGroup(clientAddress);
+                socket.receive(packet);
                 String id = clientAddress.toString() + "," + clientPort;
                 if (!existingClients.contains(id)) {
                     existingClients.add( id );

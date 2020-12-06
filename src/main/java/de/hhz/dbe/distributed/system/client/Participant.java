@@ -10,4 +10,21 @@ public class Participant {
 		addr = a;
 		port = p;
 	}
+
+	public InetAddress getAddr() {
+		return addr;
+	}
+
+	public void setAddr(InetAddress addr) {
+		this.addr = addr;
+	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+	
 }
