@@ -1,4 +1,4 @@
-package de.hhz.dbe.distributed.system.testfield;
+package de.hhz.dbe.distributed.system.message;
 
 import java.io.Serializable;
 import java.util.HashMap;

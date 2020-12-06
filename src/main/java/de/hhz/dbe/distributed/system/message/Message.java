@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import de.hhz.dbe.distributed.system.testfield.Config;
-import de.hhz.dbe.distributed.system.testfield.VectorClock;
 
 public class Message implements Serializable, Comparable<Message> {
 

@@ -9,17 +9,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.Message;
-import de.hhz.dbe.distributed.system.testfield.MessageHandler;
+import de.hhz.dbe.distributed.system.message.MessageHandler;
 
 public class MulticastReceiver implements Runnable {
 	private static Logger logger = LogManager.getLogger(MulticastReceiver.class);
 	byte buffer[];
 	int port;
-	 private String hostname;
-	public MulticastReceiver(int port,String hostname) throws IOException {
+	private String hostname;
+
+	public MulticastReceiver(String hostname, int port) throws IOException {
 		buffer = new byte[1024];
 		this.port = port;
-		this.hostname=hostname;
+		this.hostname = hostname;
 	}
 
 	public void receiveUDPMessage() throws IOException {

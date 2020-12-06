@@ -1,4 +1,4 @@
-package de.hhz.dbe.distributed.system.testfield;
+package de.hhz.dbe.distributed.system.message;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-
-import de.hhz.dbe.distributed.system.message.Message;
 
 public class MessageHandler {
 

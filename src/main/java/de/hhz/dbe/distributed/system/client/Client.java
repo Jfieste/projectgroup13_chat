@@ -11,7 +11,8 @@ import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.Payload;
-import de.hhz.dbe.distributed.system.testfield.VectorClock;
+import de.hhz.dbe.distributed.system.message.VectorClock;
+import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
 
 public class Client {
 	private static Logger logger = LogManager.getLogger(Client.class);
@@ -22,9 +23,14 @@ public class Client {
 	private OutputStream out;
 	private ObjectOutputStream objectOutputStream;
 
-	public Client(String ip, int port) {
+	private String multicasAddr;
+	private int multicastPort;
+
+	public Client(String ip, int port, String multicasAddr, int multicastPort) {
 		this.ip = ip;
 		this.port = port;
+		this.multicasAddr = multicasAddr;
+		this.multicastPort = multicastPort;
 	}
 
 	public void startConnection() throws UnknownHostException, IOException {
@@ -43,16 +49,10 @@ public class Client {
 		clientSocket.close();
 	}
 
-	public static void main(String[] args) {
-		try {
-			Client c = new Client("192.168.56.1", 4001);
-			c.startConnection();
-			c.sendMessage(new Message("test", 1, new Payload("Eric", "Hi"), new VectorClock()));
-			c.stopConnection();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.out.println("somthing");
-			e.printStackTrace();
-		}
+	public void listenToMessage() throws IOException {
+		MulticastReceiver r = new MulticastReceiver(multicasAddr, multicastPort);
+		Thread rt = new Thread(r);
+		rt.start();
 	}
+
 }

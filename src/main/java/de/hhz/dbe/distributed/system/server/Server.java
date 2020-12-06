@@ -11,9 +11,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.Message;
+import de.hhz.dbe.distributed.system.message.MessageHandler;
 import de.hhz.dbe.distributed.system.multicast.MulticastSender;
-import de.hhz.dbe.distributed.system.testfield.MessageHandler;
 
+/**
+ * @author Eric Manjone
+ * The Server receives message and send via multicast to chta participant
+ */
 public class Server extends Thread {
 	private static Logger logger = LogManager.getLogger(Server.class);
 	private volatile boolean running = true;
@@ -76,32 +80,19 @@ public class Server extends Thread {
 				ObjectInputStream objectInputStream = new ObjectInputStream(in);
 				message = (Message) objectInputStream.readObject();
 				// receive message from client and send it
-//        message = MessageHandler.getMessageFrom(buffer);
-				MulticastSender t =	new MulticastSender(8888, INET_ADDR);
+				MulticastSender t = new MulticastSender(8888, INET_ADDR);
 				t.sendMessage(MessageHandler.getByteFrom(message));
-				System.out.println(message.getPayload().getAuthor());
-				System.out.println("Received message from " + client.getInetAddress().getHostAddress()
-						+ " to retransmit message " + message.getMessageId() + " | found: " + (message != null));
+				logger.info(message.getPayload().getAuthor());
+				logger.info("Received message from " + client.getInetAddress().getHostAddress()
+						+ "with id" + message.getMessageId());
 				history.add(message);
 
-//        out.write(MessageHandler.getByteFrom(message));
-//        out.flush();
 				client.close();
 				in.close();
-//        out.close();
+				objectInputStream.close();
 			} catch (Exception e) {
-				System.out.println("IOException in RepeaterHandler Thread " + e.getMessage());
+				logger.error("IOException in RepeaterHandler Thread " + e.getMessage());
 			}
-		}
-	}
-
-	public static void main(String[] args) {
-		System.out.println("Running....");
-		try {
-			new Server(4001).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 }
