@@ -67,7 +67,7 @@ public class Server extends Thread {
 	}
 
 	/**
-	 * Thread that listens for retransmission requests
+	 * Thread that listens for incoming messages
 	 */
 	public void run() {
 		Socket client;

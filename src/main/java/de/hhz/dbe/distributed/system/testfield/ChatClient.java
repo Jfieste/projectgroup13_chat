@@ -15,7 +15,7 @@ public class ChatClient {
 
 	public static void main(String[] args) {
 		try {
-			Client c = new Client("", 4001, INET_ADDR, PORT);
+			Client c = new Client("192.168.56.1", 4001, INET_ADDR, PORT);
 			c.startConnection();
 			c.sendMessage(new Message("test", 1, new Payload("Eric", "Hi"), new VectorClock()));
 			c.stopConnection();

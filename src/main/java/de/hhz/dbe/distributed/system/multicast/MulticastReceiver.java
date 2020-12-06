@@ -28,18 +28,12 @@ public class MulticastReceiver implements Runnable {
 		InetAddress group = InetAddress.getByName(hostname);
 		socket.joinGroup(group);
 		Message msg;
-		while (true) {
-			logger.info("Waiting for multicast message...");
-			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-			socket.receive(packet);
-			msg = MessageHandler.getMessageFrom(buffer);
+		logger.info("Waiting for multicast message...");
+		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+		socket.receive(packet);
+		msg = MessageHandler.getMessageFrom(buffer);
 //			String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
-			logger.info("[Multicast UDP message received] >>" + msg.getProcessId());
-			if ("OK".equals(msg)) {
-				System.out.println("No more message. Exiting : " + msg);
-				break;
-			}
-		}
+		logger.info("[Multicast UDP message received] >>" + msg.getProcessId());
 		socket.leaveGroup(group);
 		socket.close();
 	}
