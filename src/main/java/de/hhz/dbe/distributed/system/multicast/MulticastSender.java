@@ -1,50 +1,40 @@
 package de.hhz.dbe.distributed.system.multicast;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class MulticastSender  implements Runnable {
+public class MulticastSender  {
 	private static Logger logger = LogManager.getLogger(MulticastSender.class);
     private String hostname;
     private int port ;
-    public MulticastSender(int port, String hostnme) throws IOException {
+    MulticastSocket sock ;
+    public MulticastSender(String hostnme, int port) throws IOException {
     	this.port= port;
         hostname = hostnme;
     }
+    /**
+     * 
+     * @param buf The message to send
+     * @throws Exception
+     */
     public void sendMessage( byte buf[]) throws Exception {
-        MulticastSocket sock =  new MulticastSocket(port);
+        sock =  new MulticastSocket(port);
+        logger.info(String.format("Send a Multicast message to: %s with port: %s",hostname, port));
         InetAddress address = InetAddress.getByName(hostname);
         DatagramPacket packet = new DatagramPacket(buf, buf.length, address, port);
         sock.send(packet);
     }
-    public void run() {
-//        boolean connected = false;
-//        do {
-//            try {
-//                sendMessage("GREETINGS");
-//                connected = true;
-//            } catch (Exception e) {
-//                
-//            }
-//        } while (!connected);
-//        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-//        while (true) {
-//            try {
-//                while (!in.ready()) {
-//                    Thread.sleep(100);
-//                }
-//                sendMessage(in.readLine());
-//            } catch(Exception e) {
-//                System.err.println(e);
-//            }
-//        }
+    /**
+     * close the Socket
+     */
+    public void closeSocket() {
+    	if (sock !=  null) {
+			sock.close();
+		}
     }
 }

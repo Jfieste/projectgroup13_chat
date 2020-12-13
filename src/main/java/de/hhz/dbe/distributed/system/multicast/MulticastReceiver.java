@@ -10,32 +10,37 @@ import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.MessageHandler;
+import de.hhz.dbe.distributed.system.message.MessageObject;
+import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
+import de.hhz.dbe.distributed.system.message.MessageType;
 
 public class MulticastReceiver implements Runnable {
 	private static Logger logger = LogManager.getLogger(MulticastReceiver.class);
-	byte buffer[];
-	int port;
+	private byte buffer[];
+	private int port;
 	private String hostname;
+	private MessageProcessorIF messageProcessor;
 
-	public MulticastReceiver(String hostname, int port) throws IOException {
+	public MulticastReceiver(String hostname, int port, MessageProcessorIF messageProcessor) throws IOException {
 		buffer = new byte[1024];
 		this.port = port;
 		this.hostname = hostname;
+		this.messageProcessor = messageProcessor;
 	}
 
 	public void receiveUDPMessage() throws IOException {
 		MulticastSocket socket = new MulticastSocket(port);
 		InetAddress group = InetAddress.getByName(hostname);
+		socket.setReuseAddress(true);
+		socket.setSoTimeout(15000);
 		socket.joinGroup(group);
-		Message msg;
 		logger.info("Waiting for multicast message...");
 		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 		socket.receive(packet);
-		msg = MessageHandler.getMessageFrom(buffer);
-//			String msg = new String(packet.getData(), packet.getOffset(), packet.getLength());
-		logger.info("[Multicast UDP message received] >>" + msg.getProcessId());
-		socket.leaveGroup(group);
-		socket.close();
+		MessageObject msg = MessageHandler.getMessageFrom(buffer);
+		this.messageProcessor.processMessage(msg.getMessageType());
+//		socket.leaveGroup(group);
+//		socket.close();
 	}
 
 	public void run() {

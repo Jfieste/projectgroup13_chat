@@ -3,6 +3,8 @@ package de.hhz.dbe.distributed.system.client;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -10,6 +12,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.Message;
+import de.hhz.dbe.distributed.system.message.MessageObject;
+import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
 import de.hhz.dbe.distributed.system.message.Payload;
 import de.hhz.dbe.distributed.system.message.VectorClock;
 import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
@@ -25,12 +29,13 @@ public class Client {
 
 	private String multicasAddr;
 	private int multicastPort;
-
-	public Client(String ip, int port, String multicasAddr, int multicastPort) {
+	MessageProcessorIF messageProcessor;
+	public Client(String ip, int port, String multicasAddr, int multicastPort,MessageProcessorIF messageProcessor) {
 		this.ip = ip;
 		this.port = port;
 		this.multicasAddr = multicasAddr;
 		this.multicastPort = multicastPort;
+		this.messageProcessor = messageProcessor;
 	}
 
 	public void startConnection() throws UnknownHostException, IOException {
@@ -39,7 +44,7 @@ public class Client {
 		objectOutputStream = new ObjectOutputStream(out);
 	}
 
-	public void sendMessage(Message msg) throws IOException {
+	public void sendMessage(MessageObject msg) throws IOException {
 		objectOutputStream.writeObject(msg);
 	}
 
@@ -50,7 +55,7 @@ public class Client {
 	}
 
 	public void listenToMessage() throws IOException {
-		MulticastReceiver r = new MulticastReceiver(multicasAddr, multicastPort);
+		MulticastReceiver r = new MulticastReceiver(multicasAddr, multicastPort,messageProcessor);
 		Thread rt = new Thread(r);
 		rt.start();
 	}
