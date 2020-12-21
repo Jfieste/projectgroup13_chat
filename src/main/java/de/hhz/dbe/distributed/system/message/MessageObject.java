@@ -5,7 +5,7 @@ import java.io.Serializable;
 public abstract class MessageObject implements Serializable {
 	MessageType messageType;
 
-	MessageObject(MessageType messageType) {
+	public MessageObject(MessageType messageType) {
 		this.messageType = messageType;
 	}
 

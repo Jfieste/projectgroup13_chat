@@ -7,6 +7,7 @@ public enum MessageType {
 	LEAVEMESSAGE("leave chat"), 
 	MASTER_ELECTED("master elected"),
 	SERVER_RESPONSE("response"),
+	CONNECTION_DETAIL("connection details"),
 	CHAT_MESSAGE("chat message");
 
 	String typeContent;

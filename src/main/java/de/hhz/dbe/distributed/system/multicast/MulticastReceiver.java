@@ -20,34 +20,41 @@ public class MulticastReceiver implements Runnable {
 	private int port;
 	private String hostname;
 	private MessageProcessorIF messageProcessor;
-
+	private MulticastSocket socket;
+	InetAddress group ;
 	public MulticastReceiver(String hostname, int port, MessageProcessorIF messageProcessor) throws IOException {
-		buffer = new byte[1024];
+		buffer = new byte[1024*10];
 		this.port = port;
 		this.hostname = hostname;
 		this.messageProcessor = messageProcessor;
+		socket= new MulticastSocket(port);
+		group = InetAddress.getByName(hostname);
+		socket.setReuseAddress(true);
+		socket.joinGroup(group);
+		
 	}
 
 	public void receiveUDPMessage() throws IOException {
-		MulticastSocket socket = new MulticastSocket(port);
-		InetAddress group = InetAddress.getByName(hostname);
-		socket.setReuseAddress(true);
-		socket.setSoTimeout(15000);
-		socket.joinGroup(group);
+//		socket.setSoTimeout(15000);
 		logger.info("Waiting for multicast message...");
 		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 		socket.receive(packet);
 		MessageObject msg = MessageHandler.getMessageFrom(buffer);
-		this.messageProcessor.processMessage(msg.getMessageType());
+		logger.info("Receive message of type: " + msg.getMessageType());
+		this.messageProcessor.processMessage(msg);
 //		socket.leaveGroup(group);
 //		socket.close();
 	}
 
 	public void run() {
-		try {
-			receiveUDPMessage();
-		} catch (IOException ex) {
-			ex.printStackTrace();
+		while (true) {
+			try {
+				receiveUDPMessage();
+			} catch (IOException ex) {
+				logger.info("Error during multicast message" + ex);
+			}
+
 		}
+
 	}
 }

@@ -1,27 +1,28 @@
 package de.hhz.dbe.distributed.system.client;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import de.hhz.dbe.distributed.system.message.Message;
+import de.hhz.dbe.distributed.system.message.ConnectionDetails;
+import de.hhz.dbe.distributed.system.message.MessageHandler;
 import de.hhz.dbe.distributed.system.message.MessageObject;
 import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
-import de.hhz.dbe.distributed.system.message.Payload;
-import de.hhz.dbe.distributed.system.message.VectorClock;
 import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
+import de.hhz.dbe.distributed.system.multicast.MulticastSender;
 
 public class Client {
 	private static Logger logger = LogManager.getLogger(Client.class);
-	private String ip;
-	private int port;
+	private String serverIp;
+	private int serverPort;
 
 	private Socket clientSocket;
 	private OutputStream out;
@@ -29,17 +30,56 @@ public class Client {
 
 	private String multicasAddr;
 	private int multicastPort;
-	MessageProcessorIF messageProcessor;
-	public Client(String ip, int port, String multicasAddr, int multicastPort,MessageProcessorIF messageProcessor) {
-		this.ip = ip;
-		this.port = port;
+	private MulticastSender sender;
+	private MulticastReceiver receiver;
+	final CountDownLatch latch = new CountDownLatch(1);
+
+	public Client(String multicasAddr, int multicastPort) {
 		this.multicasAddr = multicasAddr;
 		this.multicastPort = multicastPort;
-		this.messageProcessor = messageProcessor;
+		try {
+			sender = new MulticastSender(multicasAddr, multicastPort);
+			receiver = new MulticastReceiver(multicasAddr, multicastPort, messageProcessor);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	public void startConnection() throws UnknownHostException, IOException {
-		clientSocket = new Socket(ip, port);
+	MessageProcessorIF messageProcessor = new MessageProcessorIF() {
+		public void processMessage(MessageObject message) {
+			switch (message.getMessageType()) {
+			case SERVER_RESPONSE:
+
+				try {
+					Participant participant = ((ConnectionDetails) message).getParticipant();
+					serverIp = participant.getAddr();
+					serverPort = participant.getPort();
+					latch.countDown();
+				} catch (Exception e) {
+					logger.error(String.format("Somthing went wrong sending connection details: %s", e));
+				}
+				break;
+			case CONNECTION_DETAIL:
+				logger.info(String.format("Receive message from type %s", message.getMessageType()));
+				break;
+			case CHAT_MESSAGE:
+			default:
+				break;
+			}
+
+		}
+	};
+
+	public void joinGroup(MessageObject msg) throws IOException, Exception {
+		listenToMessage();
+		this.sender.sendMessage(MessageHandler.getByteFrom(msg));
+	}
+
+	public void startConnection() throws UnknownHostException, IOException, InterruptedException {
+		latch.await();
+		logger.info(String.format("IP %s port %s", serverIp, serverPort));
+		clientSocket = new Socket(serverIp, serverPort);
 		out = clientSocket.getOutputStream();
 		objectOutputStream = new ObjectOutputStream(out);
 	}
@@ -48,14 +88,21 @@ public class Client {
 		objectOutputStream.writeObject(msg);
 	}
 
+	public void readMessage() throws IOException, ClassNotFoundException {
+		InputStream in = clientSocket.getInputStream();
+		ObjectInputStream objectInputStream = new ObjectInputStream(in);
+		String mess = (String) objectInputStream.readObject();
+		logger.info(mess);
+	}
+
 	public void stopConnection() throws IOException {
 		objectOutputStream.close();
 		out.close();
 		clientSocket.close();
 	}
 
-	public void listenToMessage() throws IOException {
-		MulticastReceiver r = new MulticastReceiver(multicasAddr, multicastPort,messageProcessor);
+	private void listenToMessage() throws IOException {
+		MulticastReceiver r = new MulticastReceiver(multicasAddr, multicastPort, messageProcessor);
 		Thread rt = new Thread(r);
 		rt.start();
 	}

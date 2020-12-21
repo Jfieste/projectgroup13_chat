@@ -28,6 +28,7 @@ public class MulticastSender  {
         InetAddress address = InetAddress.getByName(hostname);
         DatagramPacket packet = new DatagramPacket(buf, buf.length, address, port);
         sock.send(packet);
+        sock.close();
     }
     /**
      * close the Socket

@@ -1,21 +1,28 @@
 package de.hhz.dbe.distributed.system.client;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 
-public class Participant {
-	InetAddress addr;
-	int port;
+public class Participant implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private String addr;
+	private int port;
+	private int id;
 
-	Participant(InetAddress a, int p) {
-		addr = a;
-		port = p;
+	public Participant(String address, int port, int id) {
+		this.addr = address;
+		this.port = port;
+		this.id = id;
 	}
 
-	public InetAddress getAddr() {
+	public String getAddr() {
 		return addr;
 	}
 
-	public void setAddr(InetAddress addr) {
+	public void setAddr(String addr) {
 		this.addr = addr;
 	}
 
@@ -26,5 +33,13 @@ public class Participant {
 	public void setPort(int port) {
 		this.port = port;
 	}
-	
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
 }
