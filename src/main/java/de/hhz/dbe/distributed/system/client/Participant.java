@@ -1,21 +1,24 @@
 package de.hhz.dbe.distributed.system.client;
 
 import java.io.Serializable;
-import java.net.InetAddress;
+import java.util.UUID;
 
-public class Participant implements Serializable {
+public class Participant implements Serializable, Comparable<Participant> {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private String addr;
 	private int port;
-	private int id;
+	private UUID id;
+	private boolean isServerComponent;
 
-	public Participant(String address, int port, int id) {
+	public Participant(String address, int port, UUID id, boolean isServerComponent) {
 		this.addr = address;
 		this.port = port;
 		this.id = id;
+		this.isServerComponent = isServerComponent;
+
 	}
 
 	public String getAddr() {
@@ -34,12 +37,24 @@ public class Participant implements Serializable {
 		this.port = port;
 	}
 
-	public int getId() {
+	public UUID getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(UUID id) {
 		this.id = id;
+	}
+
+	public int compareTo(Participant o) {
+		return getId().compareTo(o.getId());
+	}
+
+	public boolean isServerComponent() {
+		return isServerComponent;
+	}
+
+	public void setServerComponent(boolean isServerComponent) {
+		this.isServerComponent = isServerComponent;
 	}
 
 }

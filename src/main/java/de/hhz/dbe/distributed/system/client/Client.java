@@ -23,7 +23,6 @@ public class Client {
 	private static Logger logger = LogManager.getLogger(Client.class);
 	private String serverIp;
 	private int serverPort;
-
 	private Socket clientSocket;
 	private OutputStream out;
 	private ObjectOutputStream objectOutputStream;
@@ -48,6 +47,7 @@ public class Client {
 
 	MessageProcessorIF messageProcessor = new MessageProcessorIF() {
 		public void processMessage(MessageObject message) {
+			logger.info(String.format("Receive message from type %s", message.getMessageType()));
 			switch (message.getMessageType()) {
 			case SERVER_RESPONSE:
 

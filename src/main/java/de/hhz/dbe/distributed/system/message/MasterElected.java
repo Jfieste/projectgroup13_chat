@@ -1,12 +1,15 @@
 package de.hhz.dbe.distributed.system.message;
 
-public class ConnectionDetails extends MessageObject {
+import java.util.UUID;
+
+public class MasterElected extends MessageObject {
+
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	public ConnectionDetails(MessageType messageType) {
+	public MasterElected(MessageType messageType) {
 		super(messageType);
 	}
 }

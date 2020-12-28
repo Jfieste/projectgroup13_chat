@@ -8,6 +8,8 @@ public enum MessageType {
 	MASTER_ELECTED("master elected"),
 	SERVER_RESPONSE("response"),
 	CONNECTION_DETAIL("connection details"),
+	START_ELECTION("start election"),
+	ELECTION_REQUEST("election request"),
 	CHAT_MESSAGE("chat message");
 
 	String typeContent;
