@@ -4,14 +4,12 @@ import java.io.IOException;
 import java.util.Properties;
 
 import de.hhz.dbe.distributed.system.client.Client;
-import de.hhz.dbe.distributed.system.message.ConnectionMessage;
+import de.hhz.dbe.distributed.system.message.BaseMessage;
 import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.MessageObject;
-import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
 import de.hhz.dbe.distributed.system.message.MessageType;
 import de.hhz.dbe.distributed.system.message.Payload;
 import de.hhz.dbe.distributed.system.message.VectorClock;
-import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
 import de.hhz.dbe.distributed.system.utils.LoadProperties;
 
 public class ChatClient {
@@ -22,7 +20,7 @@ public class ChatClient {
 			Properties prop = new LoadProperties().readProperties();
 			String multicast = prop.getProperty("MULTICAST_GROUP");
 			int port = Integer.parseInt(prop.getProperty("MULTICAST_PORT"));
-			ConnectionMessage conMsg = new ConnectionMessage(MessageType.JOIN_MESSAGE);
+			BaseMessage conMsg = new MessageObject(MessageType.JOIN_MESSAGE);
 //			String tcpAdd = prop.getProperty("TCP_ADDRESS");
 //			int tcpPort = Integer.parseInt(prop.getProperty("TCP_PORT_SERVER_1"));
 			Client c = new Client(multicast, port);
@@ -34,7 +32,7 @@ public class ChatClient {
 			}
 			c.startConnection();
 			
-			c.sendMessage(new Message(MessageType.CHAT_MESSAGE,"test", 1, new Payload("Eric", "Hi"), new VectorClock()));
+			c.sendMessage(new Payload("Eric", "Hi"));
 //			c.stopConnection();
 			
 //			c.readMessage();

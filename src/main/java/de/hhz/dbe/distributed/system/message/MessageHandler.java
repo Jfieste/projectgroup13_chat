@@ -33,13 +33,13 @@ public class MessageHandler {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public static MessageObject getMessageFrom(byte[] buffer) throws IOException {
+	public static BaseMessage getMessageFrom(byte[] buffer) throws IOException {
 		ByteArrayInputStream bis = new ByteArrayInputStream(buffer);
 		ObjectInputStream in = new ObjectInputStream(bis);
 
-		MessageObject message = null;
+		BaseMessage message = null;
 		try {
-			message = (MessageObject) in.readObject();
+			message = (BaseMessage) in.readObject();
 		} catch (ClassNotFoundException e) {
 			// e.printStackTrace();
 		}
@@ -54,13 +54,13 @@ public class MessageHandler {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public static RequestMessage getRequestMessageFrom(byte[] buffer) throws IOException {
+	public static MessageObject getRequestMessageFrom(byte[] buffer) throws IOException {
 		ByteArrayInputStream bis = new ByteArrayInputStream(buffer);
 		ObjectInputStream in = new ObjectInputStream(bis);
 
-		RequestMessage request = null;
+		MessageObject request = null;
 		try {
-			request = (RequestMessage) in.readObject();
+			request = (MessageObject) in.readObject();
 		} catch (ClassNotFoundException e) {
 			// e.printStackTrace();
 		}

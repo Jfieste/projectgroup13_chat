@@ -12,7 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import de.hhz.dbe.distributed.system.message.ConnectionDetails;
+import de.hhz.dbe.distributed.system.message.BaseMessage;
 import de.hhz.dbe.distributed.system.message.MessageHandler;
 import de.hhz.dbe.distributed.system.message.MessageObject;
 import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
@@ -46,13 +46,13 @@ public class Client {
 	}
 
 	MessageProcessorIF messageProcessor = new MessageProcessorIF() {
-		public void processMessage(MessageObject message) {
+		public void processMessage(BaseMessage message) {
 			logger.info(String.format("Receive message from type %s", message.getMessageType()));
 			switch (message.getMessageType()) {
 			case SERVER_RESPONSE:
 
 				try {
-					Participant participant = ((ConnectionDetails) message).getParticipant();
+					Participant participant = ((MessageObject) message).getParticipant();
 					serverIp = participant.getAddr();
 					serverPort = participant.getPort();
 					latch.countDown();
@@ -71,7 +71,7 @@ public class Client {
 		}
 	};
 
-	public void joinGroup(MessageObject msg) throws IOException, Exception {
+	public void joinGroup(BaseMessage msg) throws IOException, Exception {
 		listenToMessage();
 		this.sender.sendMessage(MessageHandler.getByteFrom(msg));
 	}
@@ -84,7 +84,7 @@ public class Client {
 		objectOutputStream = new ObjectOutputStream(out);
 	}
 
-	public void sendMessage(MessageObject msg) throws IOException {
+	public void sendMessage(BaseMessage msg) throws IOException {
 		objectOutputStream.writeObject(msg);
 	}
 

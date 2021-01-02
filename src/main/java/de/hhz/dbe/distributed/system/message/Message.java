@@ -6,17 +6,19 @@ import java.util.Date;
 import java.util.Set;
 import java.util.Vector;
 
-public class Message extends MessageObject implements Serializable, Comparable<Message>  {
-	private static final long serialVersionUID = -2391989971594341988L;
+public class Message extends BaseMessage implements Serializable, Comparable<Message> {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private String processId;
-	private int messageId;
+	private long messageId;
 	private Payload payload;
 	private VectorClock vectorClock;
 	private Date receiveDate;
 
-	public Message(MessageType messageType, String processId, int messageId, Payload payload, VectorClock vectorClock)
-			throws IOException {
-	super(messageType);
+	public Message(String processId, long messageId, Payload payload, VectorClock vectorClock) throws IOException {
+		super(MessageType.CHAT_MESSAGE);
 		this.processId = processId;
 		this.messageId = messageId;
 		this.payload = payload;
@@ -31,7 +33,7 @@ public class Message extends MessageObject implements Serializable, Comparable<M
 		return payload;
 	}
 
-	public int getMessageId() {
+	public long getMessageId() {
 		return messageId;
 	}
 
@@ -57,52 +59,52 @@ public class Message extends MessageObject implements Serializable, Comparable<M
 		Vector<String> keys = unionSet(s1, s2);
 
 		int v1, v2;
-//		int result = Config.CONCURRENT;
-//
-//		int i = 0;
-//		for (String id : keys) {
-//			v1 = vectorClock.get(id);
-//			v2 = message.getPiggybackedVectorClock().get(id);
-//
-//			if (v1 < v2) {
-//				if (i == 0 || result == Config.LESS) {
-//					result = Config.LESS;
-//				} else {
-//					if (result == Config.LESS_EQ || result == Config.EQUAL) {
-//						result = Config.LESS_EQ;
-//					} else {
-//						result = Config.CONCURRENT;
-//						break;
-//					}
-//				}
-//			} else if (v1 > v2) {
-//				if (i == 0 || result == Config.GREATER) {
-//					result = Config.GREATER;
-//				} else {
-//					if (result == Config.GREATER_EQ || result == Config.EQUAL) {
-//						result = Config.GREATER_EQ;
-//					} else {
-//						result = Config.CONCURRENT;
-//						break;
-//					}
-//				}
-//			} else {
-//				if (i == 0 || result == Config.EQUAL) {
-//					result = Config.EQUAL;
-//				} else {
-//					if (result == Config.LESS_EQ || result == Config.LESS) {
-//						result = Config.LESS_EQ;
-//					} else if (result == Config.GREATER_EQ || result == Config.GREATER) {
-//						result = Config.GREATER_EQ;
-//					}
-//				}
-//			}
-//			i++;
-//		}
-//
-//		if (result == Config.CONCURRENT) {
-//			result = receiveDate.compareTo(message.getReceiveDate());
-//		}
+		int result =5;
+
+		int i = 0;
+		for (String id : keys) {
+			v1 = vectorClock.get(id);
+			v2 = message.getPiggybackedVectorClock().get(id);
+
+			if (v1 < v2) {
+				if (i == 0 || result == -2) {
+					result = -2;
+				} else {
+					if (result == -1 || result == 0) {
+						result =-1;
+					} else {
+						result = 5;
+						break;
+					}
+				}
+			} else if (v1 > v2) {
+				if (i == 0 || result == 2) {
+					result = 1;
+				} else {
+					if (result ==1|| result == 0) {
+						result = 1;
+					} else {
+						result = 5;
+						break;
+					}
+				}
+			} else {
+				if (i == 0 || result == 0) {
+					result = 0;
+				} else {
+					if (result == -1 || result == -2) {
+						result =-1;
+					} else if (result == 1 || result == 2) {
+						result = 1;
+					}
+				}
+			}
+			i++;
+		}
+
+		if (result == 5) {
+			result = receiveDate.compareTo(message.getReceiveDate());
+		}
 
 		return 0;
 	}

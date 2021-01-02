@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.MessageHandler;
-import de.hhz.dbe.distributed.system.message.MessageObject;
+import de.hhz.dbe.distributed.system.message.BaseMessage;
 import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
 import de.hhz.dbe.distributed.system.message.MessageType;
 
@@ -45,7 +45,7 @@ public class MulticastReceiver implements Runnable {
 		logger.info("Waiting for multicast message...");
 		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 		socket.receive(packet);
-		MessageObject msg = MessageHandler.getMessageFrom(buffer);
+		BaseMessage msg = MessageHandler.getMessageFrom(buffer);
 //		logger.info("Receive message of type: " + msg.getMessageType());
 		this.messageProcessor.processMessage(msg);
 
