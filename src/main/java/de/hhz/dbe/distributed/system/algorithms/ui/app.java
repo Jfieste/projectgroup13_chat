@@ -16,11 +16,8 @@ public class app  extends Application {
         loader.setLocation(getClass().getResource("/application.fxml"));
         Parent content = loader.load(); 
         Scene scene = new Scene(content);
-
         // set up the stage
         stage.setTitle("Chat Group");
-        stage.setWidth(800);
-        stage.setHeight(700);
         stage.setScene(scene);
         stage.show();
     }

@@ -321,6 +321,10 @@ public class Server extends Thread {
 				BaseMessage message = readTCPMessage(serverSocket.accept());
 				Participant part = message.getParticipant();
 				switch (message.getMessageType()) {
+				case HEARTBEAT:
+					logger.info(String.format("Heartbeath:  %s",
+							message.getMessageType()));
+					break;
 				case START_ELECTION:
 					if (!part.getId().equals(id)) {
 						startElection(part);
@@ -399,15 +403,6 @@ public class Server extends Thread {
 		return serverComponent;
 	}
 
-	public void supectedFail(Participant participant) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void candidate(Participant participant) {
-		// TODO Auto-generated method stub
-
-	}
 
 	public Participant getParticipant() {
 		return participant;
