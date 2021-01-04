@@ -9,11 +9,9 @@ import org.apache.logging.log4j.Logger;
 import de.hhz.dbe.distributed.system.server.Server;
 import de.hhz.dbe.distributed.system.utils.LoadProperties;
 
-public class TestServer {
-	private static Logger logger = LogManager.getLogger(TestServer.class);
-
+public class ServerApplication {
+	private static Logger logger = LogManager.getLogger(ServerApplication.class);
 	public static void main(String[] args) {
-//		System.setProperty("java.net.preferIPv4Stack" , "true");
 		try {
 			Properties prop = new LoadProperties().readProperties();
 			String multicast = prop.getProperty("MULTICAST_GROUP");
