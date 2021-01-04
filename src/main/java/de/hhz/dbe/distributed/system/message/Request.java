@@ -1,9 +1,6 @@
-package de.hhz.dbe.distributed.system.algorithms.causal;
+package de.hhz.dbe.distributed.system.message;
 
 import java.io.Serializable;
-
-import de.hhz.dbe.distributed.system.message.BaseMessage;
-import de.hhz.dbe.distributed.system.message.MessageType;
 
 public class Request extends BaseMessage implements Serializable {
 

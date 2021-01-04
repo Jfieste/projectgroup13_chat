@@ -18,7 +18,7 @@ public class TestServer {
 			Properties prop = new LoadProperties().readProperties();
 			String multicast = prop.getProperty("MULTICAST_GROUP");
 			int multicastPort = Integer.parseInt(prop.getProperty("MULTICAST_PORT"));
-			int tcpPort = Integer.parseInt(prop.getProperty("TCP_PORT_SERVER_2"));
+			int tcpPort = Integer.parseInt(prop.getProperty("TCP_PORT_SERVER_1"));
 			logger.info(String.format("Server is running at port %s",  tcpPort));
 			new Server(tcpPort, multicast, multicastPort).start();
 		} catch (IOException e) {

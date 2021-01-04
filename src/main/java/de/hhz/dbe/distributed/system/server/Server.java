@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import de.hhz.dbe.distributed.system.algorithms.causal.Request;
 import de.hhz.dbe.distributed.system.client.Participant;
 import de.hhz.dbe.distributed.system.message.BaseMessage;
 import de.hhz.dbe.distributed.system.message.Message;
@@ -35,6 +34,7 @@ import de.hhz.dbe.distributed.system.message.MessageObject;
 import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
 import de.hhz.dbe.distributed.system.message.MessageType;
 import de.hhz.dbe.distributed.system.message.Payload;
+import de.hhz.dbe.distributed.system.message.Request;
 import de.hhz.dbe.distributed.system.message.VectorClock;
 import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
 import de.hhz.dbe.distributed.system.multicast.MulticastSender;

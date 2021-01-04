@@ -100,10 +100,18 @@ public class Client {
 		out.close();
 		clientSocket.close();
 	}
+	
+	public void leaveGroup() {
+		try {
+			receiver.leaveGroup();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	private void listenToMessage() throws IOException {
-		MulticastReceiver r = new MulticastReceiver(multicasAddr, multicastPort, messageProcessor);
-		Thread rt = new Thread(r);
+		Thread rt = new Thread(receiver);
 		rt.start();
 	}
 

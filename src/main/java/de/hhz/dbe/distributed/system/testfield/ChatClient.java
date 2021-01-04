@@ -32,7 +32,7 @@ public class ChatClient {
 			}
 			c.startConnection();
 			
-			c.sendMessage(new Payload("Eric", "Hi"));
+			c.sendMessage(new Payload());
 //			c.stopConnection();
 			
 //			c.readMessage();
