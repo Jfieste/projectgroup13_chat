@@ -1,6 +1,5 @@
 package de.hhz.dbe.distributed.system.multicast;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -13,7 +12,7 @@ public class MulticastSender  {
     private String hostname;
     private int port ;
     MulticastSocket sock ;
-    public MulticastSender(String hostnme, int port) throws IOException {
+    public MulticastSender(String hostnme, int port) {
     	this.port= port;
         hostname = hostnme;
     }
