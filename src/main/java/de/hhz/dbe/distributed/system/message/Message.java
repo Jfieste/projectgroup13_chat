@@ -12,7 +12,7 @@ public class Message extends BaseMessage implements Serializable, Comparable<Mes
 	 */
 	private static final long serialVersionUID = 1L;
 	private String processId;
-	private long messageId;
+	private Long messageId;
 	private Payload payload;
 	private VectorClock vectorClock;
 	private Date receiveDate;
@@ -33,7 +33,7 @@ public class Message extends BaseMessage implements Serializable, Comparable<Mes
 		return payload;
 	}
 
-	public long getMessageId() {
+	public Long getMessageId() {
 		return messageId;
 	}
 

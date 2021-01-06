@@ -2,10 +2,12 @@ package de.hhz.dbe.distributed.system.message;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.net.Socket;
 
 public class MessageHandler {
 
@@ -42,7 +44,10 @@ public class MessageHandler {
 			message = (BaseMessage) in.readObject();
 		} catch (ClassNotFoundException e) {
 			// e.printStackTrace();
+		} catch (EOFException eo) {
+
 		}
+
 		in.close();
 		return message;
 	}
@@ -66,5 +71,22 @@ public class MessageHandler {
 		}
 		in.close();
 		return request;
+	}
+
+	public static Message requestMessage(String ip, int repPortClient, int messageId)
+			throws IOException, ClassNotFoundException {
+		Request request = new Request(messageId);
+		BaseMessage message = null;
+		Socket socket = new Socket(ip, repPortClient);
+		ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
+		os.writeObject(request);
+//read response from leader
+		ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
+		message = (Message) is.readObject();
+		is.close();
+		os.close();
+		socket.close();
+
+		return (Message) message;
 	}
 }

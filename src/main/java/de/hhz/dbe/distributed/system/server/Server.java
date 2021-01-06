@@ -4,15 +4,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.ObjectInputFilter.Config;
-import java.net.DatagramPacket;
 import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,6 +55,7 @@ public class Server extends Thread {
 	private UUID id;
 	private int MAX_HISTORY_SIZE;
 	private VectorClock vectorClock;
+
 	private MessageProcessorIF messageProcessor = new MessageProcessorIF() {
 
 		public void processMessage(BaseMessage msg) {
@@ -112,8 +109,7 @@ public class Server extends Thread {
 									logger.info(
 											"Lost messages " + (seen + 1) + " to " + (sent - 1) + " from " + process);
 									for (int messageId = seen + 1; messageId < sent; messageId++) {
-										Request req = new Request(messageId);
-										sendTcpMessage(leader, req);
+										MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), messageId);
 									}
 									// push first received message
 									if (process.equals(chatMessage.getProcessId())) {
@@ -129,6 +125,9 @@ public class Server extends Thread {
 					logger.info("UnknownHostException in CausalHandler Thread: " + e.getMessage());
 				} catch (IOException e) {
 					logger.info("IOException in CausalHandler Thread " + e.getMessage());
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 				break;
 
@@ -207,17 +206,6 @@ public class Server extends Thread {
 									e2.getMessage()));
 							e2.printStackTrace();
 						}
-//						if (!serverComponent.isEmpty()) {
-//							try {
-//								hearthbeatMessage = new MessageObject(MessageType.START_ELECTION);
-//								hearthbeatMessage.setParticipant(participant);
-//								sendTcpMessage(serverComponent.get(0), hearthbeatMessage);
-//							} catch (IOException e1) {
-//								logger.info(String.format("Couldn´t find my neighbor with id: %s",
-//										serverComponent.get(0).getId()));
-//								serverComponent.clear();
-//							}
-//						}
 					}
 				}
 
@@ -296,8 +284,6 @@ public class Server extends Thread {
 		InputStream in = client.getInputStream();
 		ObjectInputStream objectInputStream = new ObjectInputStream(in);
 		BaseMessage msg = (BaseMessage) objectInputStream.readObject();
-//		logger.info(String.format("Received a tcp message from %s : %s of type %s",
-//				getParticipant.get, msg.getParticipant().getPort(), msg.getMessageType()));
 		client.close();
 		in.close();
 		objectInputStream.close();
@@ -318,12 +304,17 @@ public class Server extends Thread {
 		}
 		while (running) {
 			try {
-				BaseMessage message = readTCPMessage(serverSocket.accept());
+				Socket client = serverSocket.accept();
+				InputStream in = client.getInputStream();
+				ObjectOutputStream os = new ObjectOutputStream(client.getOutputStream());
+				ObjectInputStream objectInputStream = new ObjectInputStream(in);
+				BaseMessage message = (BaseMessage) objectInputStream.readObject();
+
+//				BaseMessage message = readTCPMessage(serverSocket.accept());
 				Participant part = message.getParticipant();
 				switch (message.getMessageType()) {
 				case HEARTBEAT:
-					logger.info(String.format("Heartbeath:  %s",
-							message.getMessageType()));
+					logger.info(String.format("Heartbeath:  %s", message.getMessageType()));
 					break;
 				case START_ELECTION:
 					if (!part.getId().equals(id)) {
@@ -372,7 +363,31 @@ public class Server extends Thread {
 				case REQUEST_LOST_MESSAGE:
 					Request request = (Request) message;
 					Message mesgeToResent = findMessageInHistory(request.getMessageId());
-					sendTcpMessage(request.getParticipant(), mesgeToResent);
+
+					try {
+//						byte[] buffer = new byte[1024];
+//						// blocking method, listen for requests
+//						InputStream in = client.getInputStream();
+//						OutputStream out = client.getOutputStream();
+//						in.read(buffer);
+						// get requested message from history and send it
+//						request = MessageHandler.getRequestMessageFrom(buffer);
+//						objectInputStream.(MessageHandler.getByteFrom(mesgeToResent));
+//						out.flush();
+						os.writeObject(mesgeToResent);
+						logger.info("Received request from " + client.getInetAddress().getHostAddress()
+								+ " to retransmit message " + request.getMessageId() + " | found: "
+								+ (message != null));
+
+//						out.write(MessageHandler.getByteFrom(message));
+//						out.flush();
+//						client.close();
+//						in.close();
+						os.close();
+					} catch (IOException e) {
+						logger.error("IOException in RepeaterHandler Thread " + e.getMessage());
+					}
+//					sendTcpMessage(request.getParticipant(), mesgeToResent);
 					break;
 				case RESPONSE_LOST_MESSAGE:
 					Message requested = (Message) message;
@@ -382,7 +397,9 @@ public class Server extends Thread {
 				default:
 					break;
 				}
-
+				client.close();
+				in.close();
+				objectInputStream.close();
 			} catch (Exception e) {
 				e.printStackTrace();
 				logger.error("IOException in Thread " + e.toString());
@@ -402,7 +419,6 @@ public class Server extends Thread {
 	public List<Participant> getKnownNodes() {
 		return serverComponent;
 	}
-
 
 	public Participant getParticipant() {
 		return participant;
@@ -478,5 +494,32 @@ public class Server extends Thread {
 		}
 
 	}
+
+//	private Message requestMessage(String ip, int messageId, int length) throws IOException {
+//		Request request = new Request(messageId);
+//		byte[] buffer = new byte[length];
+//		Message message = null;
+//		boolean corrupted;
+//		Socket socket = new Socket(ip, repPortClient);
+//		InputStream in = socket.getInputStream();
+//		OutputStream out = socket.getOutputStream();
+//
+//		do {
+//			out.write(MessageHandler.getByteFrom(request));
+//			out.flush();
+//			in.read(buffer);
+//			message = (Message) MessageHandler.getMessageFrom(buffer);
+//			message.setReceiveDate(new Date());
+//			socket.close();
+//			in.close();
+//			out.close();
+//
+//			corrupted = isCorrupted(message);
+//			if (corrupted) {
+//				logger.info("Corrupted message " + message.toString());
+//			}
+//		} while (corrupted);
+//		return message;
+//	}
 
 }

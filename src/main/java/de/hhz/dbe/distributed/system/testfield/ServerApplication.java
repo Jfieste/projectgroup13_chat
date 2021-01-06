@@ -20,8 +20,7 @@ public class ServerApplication {
 			logger.info(String.format("Server is running at port %s",  tcpPort));
 			new Server(tcpPort, multicast, multicastPort).start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("Server already runing at the same port");
 		}
 	}
 

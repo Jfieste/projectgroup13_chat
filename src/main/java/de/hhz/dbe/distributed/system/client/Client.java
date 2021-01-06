@@ -7,14 +7,17 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.sql.Date;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.message.BaseMessage;
+import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.MessageHandler;
 import de.hhz.dbe.distributed.system.message.Payload;
+import de.hhz.dbe.distributed.system.message.Request;
 import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
 import de.hhz.dbe.distributed.system.multicast.MulticastSender;
 
@@ -66,7 +69,6 @@ public class Client {
 //	};
 
 	public void joinGroup(BaseMessage msg) throws IOException, Exception {
-//		listenToMessage();
 		this.sender.sendMessage(MessageHandler.getByteFrom(msg));
 	}
 
@@ -109,10 +111,10 @@ public class Client {
 		}
 	}
 
-	private void listenToMessage() throws IOException {
-		Thread rt = new Thread(receiver);
-		rt.start();
-	}
+//	private void listenToMessage() throws IOException {
+//		Thread rt = new Thread(receiver);
+//		rt.start();
+//	}
 
 	public String getServerIp() {
 		return serverIp;
