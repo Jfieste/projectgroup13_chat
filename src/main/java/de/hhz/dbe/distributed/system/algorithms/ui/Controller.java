@@ -173,11 +173,10 @@ public class Controller {
 				}
 				break;
 			case CHAT_MESSAGE:
-				Message chatMessage = (Message) message;
+				final Message chatMessage = (Message) message;
 				Payload payload = chatMessage.getPayload();
 				Platform.runLater(new Runnable() {
 					
-					@Override
 					public void run() {
 						// TODO Auto-generated method stub
 						listView.getItems().add(String.format("%s: %s", chatMessage.getPayload().getAuthor(),
