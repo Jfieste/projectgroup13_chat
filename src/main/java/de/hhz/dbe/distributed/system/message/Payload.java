@@ -8,7 +8,6 @@ public class Payload extends BaseMessage implements Serializable {
 	private static final long serialVersionUID = 8554705838734687076L;
 	private Date date;
 	private String author;
-
 	private String text;
 	private int menberID;
 

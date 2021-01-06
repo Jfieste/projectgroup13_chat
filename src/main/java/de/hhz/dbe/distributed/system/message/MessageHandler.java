@@ -73,6 +73,15 @@ public class MessageHandler {
 		return request;
 	}
 
+	/**
+	 * retransmit messages
+	 * @param ip
+	 * @param repPortClient
+	 * @param messageId
+	 * @return
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
 	public static Message requestMessage(String ip, int repPortClient, int messageId)
 			throws IOException, ClassNotFoundException {
 		Request request = new Request(messageId);
@@ -80,7 +89,7 @@ public class MessageHandler {
 		Socket socket = new Socket(ip, repPortClient);
 		ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
 		os.writeObject(request);
-//read response from leader
+      //read response from leader
 		ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
 		message = (Message) is.readObject();
 		is.close();

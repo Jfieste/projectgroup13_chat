@@ -8,11 +8,9 @@ import java.net.MulticastSocket;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import de.hhz.dbe.distributed.system.message.Message;
-import de.hhz.dbe.distributed.system.message.MessageHandler;
 import de.hhz.dbe.distributed.system.message.BaseMessage;
+import de.hhz.dbe.distributed.system.message.MessageHandler;
 import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
-import de.hhz.dbe.distributed.system.message.MessageType;
 
 public class MulticastReceiver implements Runnable {
 	private static Logger logger = LogManager.getLogger(MulticastReceiver.class);
@@ -22,6 +20,7 @@ public class MulticastReceiver implements Runnable {
 	private MessageProcessorIF messageProcessor;
 	private MulticastSocket socket;
 	InetAddress group;
+	DatagramPacket packet;
 
 	public MulticastReceiver(String hostname, int port, MessageProcessorIF messageProcessor) throws IOException {
 		buffer = new byte[1024 * 10];
@@ -40,26 +39,23 @@ public class MulticastReceiver implements Runnable {
 		socket.close();
 	}
 
-	public void listenUDPMessage() throws IOException {
-//		socket.setSoTimeout(15000);
-		logger.info("Waiting for multicast message...");
-		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-		socket.receive(packet);
-		BaseMessage msg = MessageHandler.getMessageFrom(buffer);
-//		logger.info("Receive message of type: " + msg.getMessageType());
-		this.messageProcessor.processMessage(msg);
+	public void listenUDPMessage() {
+		try {
+			logger.info("Waiting for multicast message...");
+			packet = new DatagramPacket(buffer, buffer.length);
+			socket.receive(packet);
+			BaseMessage msg = MessageHandler.getMessageFrom(buffer);
+			this.messageProcessor.processMessage(msg);
+		} catch (IOException e) {
+			logger.info("Connection error..." + e.getMessage());
+		}
 
 	}
 
 	public void run() {
 		while (true) {
-			try {
-				listenUDPMessage();
-			} catch (IOException ex) {
-				logger.info("Error during multicast message" + ex);
-			}
+			listenUDPMessage();
 
 		}
-
 	}
 }

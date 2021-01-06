@@ -37,7 +37,7 @@ import de.hhz.dbe.distributed.system.multicast.MulticastSender;
 import de.hhz.dbe.distributed.system.utils.LoadProperties;
 
 /**
- * @author Project Group 13 The Server receives message and send via multicast
+ * @author Project Group 13 The Server receives message and send via multi cast
  *         to chat participant
  */
 public class Server extends Thread {
@@ -55,7 +55,7 @@ public class Server extends Thread {
 	private UUID id;
 	private int MAX_HISTORY_SIZE;
 	private VectorClock vectorClock;
-
+	private int heartbeat_interval = 0;
 	private MessageProcessorIF messageProcessor = new MessageProcessorIF() {
 
 		public void processMessage(BaseMessage msg) {
@@ -66,9 +66,8 @@ public class Server extends Thread {
 					connectionDetails.setParticipant(participant);
 					if (msg.getParticipant() == null && isLeader && !inElection) {
 						sender.sendMessage(MessageHandler.getByteFrom(connectionDetails));
-					} else if (!msg.getParticipant().getId().equals(id)) {
-						logger.info("send message" + id);
-						if (isLeader && !inElection)
+					} else if (msg.getParticipant() != null ) {
+						if (isLeader && !inElection && !msg.getParticipant().getId().equals(id))
 							if (msg.getParticipant().isServerComponent()) {
 								if (!serverComponent.isEmpty()) {
 									connectionDetails.setNeighbors(serverComponent.get(0));
@@ -106,9 +105,9 @@ public class Server extends Thread {
 								sent = piggybackedVectorClock.get(process);
 								if (seen <= sent - 1) {
 									// if vector clocks do not agree, then pull messages
-									logger.info(
-											"Lost messages " + (seen + 1) + " to " + (sent - 1) + " from " + process);
+
 									for (int messageId = seen + 1; messageId < sent; messageId++) {
+										logger.info("Lost message " + messageId + " from " + process);
 										MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), messageId);
 									}
 									// push first received message
@@ -122,30 +121,17 @@ public class Server extends Thread {
 						vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
 					}
 				} catch (UnknownHostException e) {
-					logger.info("UnknownHostException in CausalHandler Thread: " + e.getMessage());
+					logger.info("UnknownHostException in Server Thread: " + e.getMessage());
 				} catch (IOException e) {
-					logger.info("IOException in CausalHandler Thread " + e.getMessage());
+					logger.info("IOException in Server Thread " + e.getMessage());
 				} catch (ClassNotFoundException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				break;
-
-			case MASTER_ELECTED:
-				if (!msg.getParticipant().getId().equals(id)) {
-					logger.info(String.format("Receive new Elected leader from type %s", msg.getParticipant().getId()));
-				}
-				break;
 			case CONNECTION_LOST:
 				logger.info(String.format("The Leader is lost %s", msg.getParticipant().getId()));
 				inElection = true;
-//				Participant neighbor = serverComponent.get(0);
-//				if (leader != null) {
-//					if (neighbor.compareTo(leader) == 0) {
-//						serverComponent.clear();
-//					}
-//				}
-
 				leader = null;
 				if (msg.getParticipant().compareTo(participant) == 0 && !isConnected) {
 					inElection = false;
@@ -155,8 +141,7 @@ public class Server extends Thread {
 					try {
 						handShake();
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						logger.info("Error during hand shake: " + e.getMessage());
 					}
 				}
 				break;
@@ -168,15 +153,18 @@ public class Server extends Thread {
 
 	public Server(int port, String multicast, int multiPort) throws IOException {
 		this.history = new Vector<Message>();
-		this.serverSocket = new ServerSocket(port);
+
 		this.multicast = multicast;
 		this.id = UUID.randomUUID();
 		this.vectorClock = new VectorClock();
+
+		this.serverSocket = new ServerSocket(port);
+		receiver = new MulticastReceiver(multicast, multiPort, messageProcessor);
 		Properties prop = new LoadProperties().readProperties();
 		MAX_HISTORY_SIZE = Integer.parseInt(prop.getProperty("MAX_HISTORY_SIZE"));
+		heartbeat_interval = Integer.parseInt(prop.getProperty("HEARTHBEAT_INTERVAL_SEC"));
 		participant = new Participant(Inet4Address.getLocalHost().getHostAddress(), serverSocket.getLocalPort(), id,
 				true);
-		receiver = new MulticastReceiver(multicast, multiPort, messageProcessor);
 		sender = new MulticastSender(this.multicast, multiPort);
 		Runnable harthbeat = new Runnable() {
 
@@ -200,11 +188,9 @@ public class Server extends Thread {
 						} catch (IOException e2) {
 							logger.error(String.format("send connection lost inside the group when wrong: %s",
 									e2.getMessage()));
-							e2.printStackTrace();
 						} catch (Exception e2) {
 							logger.error(String.format("send connection lost inside the group when wrong: %s",
 									e2.getMessage()));
-							e2.printStackTrace();
 						}
 					}
 				}
@@ -212,7 +198,7 @@ public class Server extends Thread {
 			}
 		};
 		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
-		service.scheduleAtFixedRate(harthbeat, 20, 20, TimeUnit.SECONDS);
+		service.scheduleAtFixedRate(harthbeat, 20, heartbeat_interval, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -280,16 +266,6 @@ public class Server extends Thread {
 		client.close();
 	}
 
-	private BaseMessage readTCPMessage(Socket client) throws IOException, ClassNotFoundException {
-		InputStream in = client.getInputStream();
-		ObjectInputStream objectInputStream = new ObjectInputStream(in);
-		BaseMessage msg = (BaseMessage) objectInputStream.readObject();
-		client.close();
-		in.close();
-		objectInputStream.close();
-		return msg;
-	}
-
 	/**
 	 * Thread that listens for incoming messages
 	 */
@@ -306,15 +282,13 @@ public class Server extends Thread {
 			try {
 				Socket client = serverSocket.accept();
 				InputStream in = client.getInputStream();
-				ObjectOutputStream os = new ObjectOutputStream(client.getOutputStream());
 				ObjectInputStream objectInputStream = new ObjectInputStream(in);
 				BaseMessage message = (BaseMessage) objectInputStream.readObject();
 
-//				BaseMessage message = readTCPMessage(serverSocket.accept());
 				Participant part = message.getParticipant();
 				switch (message.getMessageType()) {
 				case HEARTBEAT:
-					logger.info(String.format("Heartbeath:  %s", message.getMessageType()));
+					logger.info(String.format("Heartbeath from: %s %s", part.getAddr(), part.getPort()));
 					break;
 				case START_ELECTION:
 					if (!part.getId().equals(id)) {
@@ -325,16 +299,17 @@ public class Server extends Thread {
 					}
 					break;
 				case CHAT_MESSAGE:
-					Payload payload = (Payload) message;
-					vectorClock.addOneTo(id.toString());
-					int messageId = vectorClock.get(id.toString());
-					VectorClock piggybackedVectorClock = (VectorClock) vectorClock.Clone();
-					Message chatMessage = new Message(id.toString(), messageId, payload, piggybackedVectorClock);
-					logger.info(String.format("forwarding a chat message:  %s", message.getMessageType()));
-					// receive message from client and send it
-					sender.sendMessage(MessageHandler.getByteFrom(chatMessage));
-					history.add((Message) chatMessage);
-
+					if (isLeader) {
+						Payload payload = (Payload) message;
+						vectorClock.addOneTo(id.toString());
+						int messageId = vectorClock.get(id.toString());
+						VectorClock piggybackedVectorClock = (VectorClock) vectorClock.Clone();
+						Message chatMessage = new Message(id.toString(), messageId, payload, piggybackedVectorClock);
+						logger.info(String.format("forwarding a chat message:  %s", message.getMessageType()));
+						// receive message from client and send it
+						sender.sendMessage(MessageHandler.getByteFrom(chatMessage));
+						history.add((Message) chatMessage);
+					}
 					break;
 				case MASTER_IN_ELECTION:
 					startElection(part);
@@ -363,31 +338,19 @@ public class Server extends Thread {
 				case REQUEST_LOST_MESSAGE:
 					Request request = (Request) message;
 					Message mesgeToResent = findMessageInHistory(request.getMessageId());
+					ObjectOutputStream os = new ObjectOutputStream(client.getOutputStream());
 
 					try {
-//						byte[] buffer = new byte[1024];
-//						// blocking method, listen for requests
-//						InputStream in = client.getInputStream();
-//						OutputStream out = client.getOutputStream();
-//						in.read(buffer);
-						// get requested message from history and send it
-//						request = MessageHandler.getRequestMessageFrom(buffer);
-//						objectInputStream.(MessageHandler.getByteFrom(mesgeToResent));
-//						out.flush();
 						os.writeObject(mesgeToResent);
 						logger.info("Received request from " + client.getInetAddress().getHostAddress()
 								+ " to retransmit message " + request.getMessageId() + " | found: "
 								+ (message != null));
 
-//						out.write(MessageHandler.getByteFrom(message));
-//						out.flush();
-//						client.close();
-//						in.close();
 						os.close();
 					} catch (IOException e) {
 						logger.error("IOException in RepeaterHandler Thread " + e.getMessage());
 					}
-//					sendTcpMessage(request.getParticipant(), mesgeToResent);
+					os.close();
 					break;
 				case RESPONSE_LOST_MESSAGE:
 					Message requested = (Message) message;
@@ -397,11 +360,11 @@ public class Server extends Thread {
 				default:
 					break;
 				}
-				client.close();
+
 				in.close();
 				objectInputStream.close();
+				client.close();
 			} catch (Exception e) {
-				e.printStackTrace();
 				logger.error("IOException in Thread " + e.toString());
 			}
 		}
@@ -488,38 +451,9 @@ public class Server extends Thread {
 			try {
 				handShake();
 			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				logger.debug("Join Error " + e1.getMessage());
 			}
 		}
 
 	}
-
-//	private Message requestMessage(String ip, int messageId, int length) throws IOException {
-//		Request request = new Request(messageId);
-//		byte[] buffer = new byte[length];
-//		Message message = null;
-//		boolean corrupted;
-//		Socket socket = new Socket(ip, repPortClient);
-//		InputStream in = socket.getInputStream();
-//		OutputStream out = socket.getOutputStream();
-//
-//		do {
-//			out.write(MessageHandler.getByteFrom(request));
-//			out.flush();
-//			in.read(buffer);
-//			message = (Message) MessageHandler.getMessageFrom(buffer);
-//			message.setReceiveDate(new Date());
-//			socket.close();
-//			in.close();
-//			out.close();
-//
-//			corrupted = isCorrupted(message);
-//			if (corrupted) {
-//				logger.info("Corrupted message " + message.toString());
-//			}
-//		} while (corrupted);
-//		return message;
-//	}
-
 }

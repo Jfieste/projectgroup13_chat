@@ -5,9 +5,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
-public class VectorClock implements Serializable, Cloneable {
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-	private static final long serialVersionUID = -8761765948522375160L;
+import de.hhz.dbe.distributed.system.serverapp.ServerApplication;
+
+public class VectorClock implements Serializable, Cloneable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static Logger logger = LogManager.getLogger(VectorClock.class);
 	private HashMap<String, Integer> vectorClock;
 
 	public VectorClock() {
@@ -83,7 +91,7 @@ public class VectorClock implements Serializable, Cloneable {
 			vectorClockClone = (VectorClock) super.clone();
 			vectorClockClone.vectorClock = new HashMap<String, Integer>(vectorClock);
 		} catch (CloneNotSupportedException e) {
-			System.out.println("CloneNotSupportedException in VectorClock: " + e.getMessage());
+			logger.error("CloneNotSupportedException in VectorClock: " + e.getMessage());
 		}
 		return vectorClockClone;
 	}

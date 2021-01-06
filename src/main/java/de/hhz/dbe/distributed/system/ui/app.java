@@ -1,4 +1,4 @@
-package de.hhz.dbe.distributed.system.algorithms.ui;
+package de.hhz.dbe.distributed.system.ui;
 
 import java.io.IOException;
 

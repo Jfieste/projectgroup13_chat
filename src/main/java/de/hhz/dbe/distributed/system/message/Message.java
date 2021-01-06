@@ -23,6 +23,7 @@ public class Message extends BaseMessage implements Serializable, Comparable<Mes
 		this.messageId = messageId;
 		this.payload = payload;
 		this.vectorClock = vectorClock;
+		receiveDate = new Date();
 	}
 
 	public String getProcessId() {

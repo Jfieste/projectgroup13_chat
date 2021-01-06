@@ -12,9 +12,9 @@ public class MulticastSender  {
     private String hostname;
     private int port ;
     MulticastSocket sock ;
-    public MulticastSender(String hostnme, int port) {
+    public MulticastSender(String hostname, int port) {
     	this.port= port;
-        hostname = hostnme;
+        this.hostname = hostname;
     }
     /**
      * 

@@ -1,12 +1,10 @@
-package de.hhz.dbe.distributed.system.algorithms.ui;
+package de.hhz.dbe.distributed.system.ui;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.PriorityBlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,6 +25,7 @@ import de.hhz.dbe.distributed.system.utils.LoadProperties;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -63,16 +62,18 @@ public class Controller {
 
 	private int serverPort = 0;
 	private Client chatClient;
-	private BaseMessage conMsg;
-	final CountDownLatch latch = new CountDownLatch(5);
+	private BaseMessage conMsg = new MessageObject(MessageType.JOIN_MESSAGE);
 	private String userName;
 	private MulticastSender sender;
 	private MulticastReceiver receiver;
-	TextInputDialog dialog = new TextInputDialog("");
-	Properties prop;
-	String multicast;
-	int port;
+	private TextInputDialog dialog = new TextInputDialog("");
+	private Properties prop;
+	private String multicast;
+	private int port;
 	private VectorClock vectorClock;
+	private int retries = 3;
+	private int count = 0;
+	private Thread receiverThread;
 
 	@FXML
 	void onEditName(ActionEvent event) {
@@ -81,8 +82,9 @@ public class Controller {
 
 	@FXML
 	void onEnterGroup(ActionEvent event) {
+	
 		chatClient = new Client(sender, receiver);
-		conMsg = new MessageObject(MessageType.JOIN_MESSAGE);
+		receiverThread.start();
 		dialog.setTitle("Chat Name");
 		dialog.setHeaderText("Enter your username for the chat room");
 		// Traditional way to get the response value.
@@ -94,11 +96,8 @@ public class Controller {
 		try {
 			chatClient.joinGroup(conMsg);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.debug("Error joining the group: " + e.getMessage());
 		}
-		Thread rt = new Thread(receiver);
-		rt.start();
 	}
 
 	@FXML
@@ -124,23 +123,43 @@ public class Controller {
 		String text = textField.getText();
 		payload.setAuthor(userName);
 		payload.setText(text);
-		try {
-			chatClient.startConnection(getServerIp(), getServerPort());
-			chatClient.sendMessage(payload);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		boolean reDo = true;
+		while (reDo) {
+			try {
+				chatClient.startConnection(getServerIp(), getServerPort());
+				chatClient.sendMessage(payload);
+				reDo = false;
+				textField.clear();
+			} catch (IOException e) {
+				logger.info(String.format("Retrying to contact leader"));
+				if (++count == retries) {
+					try {
+						chatClient.joinGroup(conMsg);
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						logger.error(String.format("Couldn´t contact the leader"));
+					}
+				} else if (count > 4) {
+					logger.error("No server is avalaible");
+					reDo = false;
+					Alert alert = new Alert(Alert.AlertType.ERROR);
+					alert.setTitle("Error");
+					alert.setHeaderText("Connection error");
+					alert.setContentText("No server is avalaible");
+					alert.showAndWait();
+				}
+			} catch (InterruptedException e) {
+				logger.debug("Interrupted error: " + e.getMessage());
+			}
+
 		}
-		textField.clear();
+
 	}
 
 	@FXML // This method is called by the FXMLLoader when initialization is complete
 	void initialize() {
+		logger.info("Start Chat application...");
 		vectorClock = new VectorClock();
-		System.out.println("Staring");
 		try {
 			prop = new LoadProperties().readProperties();
 		} catch (IOException e) {
@@ -152,10 +171,11 @@ public class Controller {
 		sender = new MulticastSender(multicast, port);
 		try {
 			receiver = new MulticastReceiver(multicast, port, messageProcessor);
+			receiverThread = new Thread(receiver);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.debug("Error initializing the MulticastReceiver: " + e.getMessage());
 		}
+
 	}
 
 	MessageProcessorIF messageProcessor = new MessageProcessorIF() {
@@ -170,8 +190,6 @@ public class Controller {
 					Participant participant = ((MessageObject) message).getParticipant();
 					setServerIp(participant.getAddr());
 					setServerPort(participant.getPort());
-//					chatClient.setServerIp(serverIp);
-//					chatClient.setServerPort(serverPort);
 
 				} catch (Exception e) {
 					logger.error(String.format("Somthing went wrong sending connection details: %s", e));
@@ -179,53 +197,54 @@ public class Controller {
 				break;
 			case CHAT_MESSAGE:
 				final Message chatMessage = (Message) message;
-				// push first received message
 				Platform.runLater(new Runnable() {
-//
 					public void run() {
+						Payload payload = chatMessage.getPayload();
 
-				Payload payload = chatMessage.getPayload();
+						logger.info(String.format("Receive message from type %s %s", payload.getAuthor(),
+								payload.getText()));
 
-				logger.info(String.format("Receive message from type %s %s", payload.getAuthor(), payload.getText()));
+						try {
+							String process;
+							int seen, sent;
+							// check if the sender is different from current process
+							logger.info("Received message " + chatMessage.toString());
 
-				try {
-					String process;
-					int seen, sent;
-					// check if the sender is different from current process
-					logger.info("Received message " + chatMessage.toString());
+							VectorClock piggybackedVectorClock = chatMessage.getPiggybackedVectorClock();
+							Iterator<String> it = piggybackedVectorClock.getProcessIds().iterator();
 
-					VectorClock piggybackedVectorClock = chatMessage.getPiggybackedVectorClock();
-					Iterator<String> it = piggybackedVectorClock.getProcessIds().iterator();
+							// compare local and received vector clock
+							while (it.hasNext()) {
+								process = it.next();
+								seen = vectorClock.get(process);
+								sent = piggybackedVectorClock.get(process);
+								if (seen <= sent - 1) {
+									// if vector clocks do not agree, then pull messages
+									
+									for (int messageId = seen + 1; messageId < sent; messageId++) {
+										logger.info(
+												"Lost messages " + messageId + " from " + process);
+										Message lostMes = MessageHandler.requestMessage(getServerIp(), getServerPort(),
+												messageId);
+										listView.getItems()
+												.add(String.format("%s>   %s  =>   %s", lostMes.getPayload().getAuthor(),
+														lostMes.getPayload().getText(), lostMes.getReceiveDate()));
+									}
+									listView.getItems()
+											.add(String.format("%s>    %s  =>   %s", chatMessage.getPayload().getAuthor(),
+													chatMessage.getPayload().getText(), chatMessage.getReceiveDate()));
 
-					// compare local and received vector clock
-					while (it.hasNext()) {
-						process = it.next();
-						seen = vectorClock.get(process);
-						sent = piggybackedVectorClock.get(process);
-						if (seen <= sent - 1) {
-							// if vector clocks do not agree, then pull messages
-							logger.info("Lost messages " + (seen + 1) + " to " + (sent - 1) + " from " + process);
-							for (int messageId = seen + 1; messageId < sent; messageId++) {
-								Message lostMes = MessageHandler.requestMessage(getServerIp(), getServerPort(),
-										messageId);
-								listView.getItems().add(String.format("%s: %s %s", lostMes.getPayload().getAuthor(),
-										lostMes.getPayload().getText(), lostMes.getReceiveDate()));
+								}
 							}
-							listView.getItems().add(String.format("%s: %s %s", chatMessage.getPayload().getAuthor(),
-									chatMessage.getPayload().getText(), chatMessage.getReceiveDate()));
-
+							// merge local and received vector clocks
+							vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
+						} catch (UnknownHostException e) {
+							logger.info("UnknownHostException in Controller: " + e.getMessage());
+						} catch (IOException e) {
+							logger.info("IOException in Controller " + e);
+						} catch (ClassNotFoundException e) {
+							logger.info("ClassNotFoundException in Controller " + e);
 						}
-					}
-					// merge local and received vector clocks
-					vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
-				} catch (UnknownHostException e) {
-					logger.info("UnknownHostException in CausalHandler Thread: " + e.getMessage());
-				} catch (IOException e) {
-					logger.info("IOException in CausalHandler Thread " + e);
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
 					}
 				});
 				break;
