@@ -3,10 +3,11 @@ package de.hhz.dbe.distributed.system.ui;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -77,7 +78,6 @@ public class Controller {
 	private int retries = 3;
 	private int count = 0;
 	private Thread receiverThread;
-	private CountDownLatch latch = new CountDownLatch(5);
 
 	@FXML
 	void onEditName(ActionEvent event) {
@@ -103,21 +103,27 @@ public class Controller {
 
 				@Override
 				public void run() {
-					
-					List<Message> listOfMsg;
-					
-					try {
-						latch.wait();
-						listOfMsg = MessageHandler.requestListOfMessages(getServerIp(), getServerPort(), reqMsg);
-						for (int i = 0; i < listOfMsg.size(); i++) {
-							listView.getItems()
-									.add(String.format("%s>   %s  =>   %s", listOfMsg.get(i).getPayload().getAuthor(),
-											listOfMsg.get(i).getPayload().getText(),
-											listOfMsg.get(i).getReceiveDate()));
+
+					final ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
+
+					exec.schedule(new Runnable() {
+						@Override
+						public void run() {
+							try {
+								MessageObject m = (MessageObject) MessageHandler.requestMessage(getServerIp(),
+										getServerPort(), reqMsg);
+								for (int i = 0; i < m.getMessgaes().size(); i++) {
+									vectorClock = VectorClock.mergeClocks(causalityHandling(m.getMessgaes().get(i)),
+											vectorClock);
+								}
+								textField.setEditable(true);
+							} catch (Exception e) {
+								logger.debug("Error transmitting message: " + e.getMessage());
+							}
+
 						}
-					} catch (Exception e) {
-						logger.debug("Error transmitting message: " + e.getMessage());
-					}
+					}, 5, TimeUnit.SECONDS);
+
 				}
 			});
 
@@ -137,7 +143,6 @@ public class Controller {
 		try {
 			chatClient.stopConnection();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -149,37 +154,52 @@ public class Controller {
 		String text = textField.getText();
 		payload.setAuthor(userName);
 		payload.setText(text);
-		boolean reDo = true;
-		while (reDo) {
-			try {
-				chatClient.startConnection(getServerIp(), getServerPort());
-				chatClient.sendMessage(payload);
-				reDo = false;
-				textField.clear();
-			} catch (IOException e) {
-				logger.info(String.format("Retrying to contact leader"));
-				if (++count == retries) {
+		Platform.runLater(new Runnable() {
+
+			@Override
+			public void run() {
+
+				boolean reDo = true;
+				while (reDo) {
 					try {
-						chatClient.joinGroup(conMsg);
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						logger.error(String.format("Couldn´t contact the leader"));
+						chatClient.startConnection(getServerIp(), getServerPort());
+						MessageObject msg = chatClient.sendMessage(payload);
+						if (msg == null) {
+							reDo = false;
+							textField.clear();
+						} else if (msg.getMessageType() == MessageType.MASTER_ELECTED) {
+							try {
+								chatClient.joinGroup(conMsg);
+							} catch (Exception e1) {
+								logger.error(String.format("Couldn´t contact the leader"));
+							}
+						}
+					} catch (IOException e) {
+						logger.info(String.format("Retrying to contact leader"));
+						if (++count == retries) {
+							try {
+								chatClient.joinGroup(conMsg);
+							} catch (Exception e1) {
+								logger.error(String.format("Couldn´t contact the leader"));
+							}
+						} else if (count > 4) {
+							logger.error("No server is avalaible");
+							reDo = false;
+							Alert alert = new Alert(Alert.AlertType.ERROR);
+							alert.setTitle("Error");
+							alert.setHeaderText("Connection error");
+							alert.setContentText("No server is avalaible");
+							alert.showAndWait();
+						}
+					} catch (InterruptedException e) {
+						logger.debug("Interrupted error: " + e.getMessage());
+					} catch (ClassNotFoundException e) {
+						logger.debug("Class not found: " + e.getMessage());
 					}
-				} else if (count > 4) {
-					logger.error("No server is avalaible");
-					reDo = false;
-					Alert alert = new Alert(Alert.AlertType.ERROR);
-					alert.setTitle("Error");
-					alert.setHeaderText("Connection error");
-					alert.setContentText("No server is avalaible");
-					alert.showAndWait();
+
 				}
-			} catch (InterruptedException e) {
-				logger.debug("Interrupted error: " + e.getMessage());
 			}
-
-		}
-
+		});
 	}
 
 	@FXML // This method is called by the FXMLLoader when initialization is complete
@@ -201,7 +221,7 @@ public class Controller {
 		} catch (IOException e) {
 			logger.debug("Error initializing the MulticastReceiver: " + e.getMessage());
 		}
-
+		textField.setEditable(false);
 	}
 
 	MessageProcessorIF messageProcessor = new MessageProcessorIF() {
@@ -211,7 +231,6 @@ public class Controller {
 			case SERVER_RESPONSE:
 				logger.info(String.format("Connection details %s: %s", message.getParticipant().getAddr(),
 						message.getParticipant().getPort()));
-				latch.countDown();
 				try {
 					Participant participant = ((MessageObject) message).getParticipant();
 					setServerIp(participant.getAddr());
@@ -231,39 +250,7 @@ public class Controller {
 								payload.getText()));
 
 						try {
-							String process;
-							int seen, sent;
-							// check if the sender is different from current process
-							logger.info("Received message " + chatMessage.toString());
-
-							VectorClock piggybackedVectorClock = chatMessage.getPiggybackedVectorClock();
-							Iterator<String> it = piggybackedVectorClock.getProcessIds().iterator();
-
-							// compare local and received vector clock
-							while (it.hasNext()) {
-								process = it.next();
-								seen = vectorClock.get(process);
-								sent = piggybackedVectorClock.get(process);
-								if (seen <= sent - 1) {
-									// if vector clocks do not agree, then pull messages
-
-									for (int messageId = seen + 1; messageId < sent; messageId++) {
-										logger.info("Lost messages " + messageId + " from " + process);
-										Request req = new Request(messageId);
-										Message lostMes = MessageHandler.requestMessage(getServerIp(), getServerPort(),
-												req);
-										listView.getItems()
-												.add(String.format("%s>   %s  =>   %s",
-														lostMes.getPayload().getAuthor(),
-														lostMes.getPayload().getText(), lostMes.getReceiveDate()));
-									}
-									listView.getItems()
-											.add(String.format("%s>    %s  =>   %s",
-													chatMessage.getPayload().getAuthor(),
-													chatMessage.getPayload().getText(), chatMessage.getReceiveDate()));
-
-								}
-							}
+							VectorClock piggybackedVectorClock = causalityHandling(chatMessage);
 							// merge local and received vector clocks
 							vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
 						} catch (UnknownHostException e) {
@@ -274,6 +261,7 @@ public class Controller {
 							logger.info("ClassNotFoundException in Controller " + e);
 						}
 					}
+
 				});
 				break;
 			default:
@@ -281,6 +269,38 @@ public class Controller {
 			}
 		}
 	};
+
+	private VectorClock causalityHandling(final Message chatMessage) throws IOException, ClassNotFoundException {
+		String process;
+		int seen, sent;
+		// check if the sender is different from current process
+		logger.info("Received message " + chatMessage.toString());
+
+		VectorClock piggybackedVectorClock = chatMessage.getPiggybackedVectorClock();
+		Iterator<String> it = piggybackedVectorClock.getProcessIds().iterator();
+
+		// compare local and received vector clock
+		while (it.hasNext()) {
+			process = it.next();
+			seen = vectorClock.get(process);
+			sent = piggybackedVectorClock.get(process);
+			if (seen <= sent - 1) {
+				// if vector clocks do not agree, then pull messages
+
+				for (int messageId = seen + 1; messageId < sent; messageId++) {
+					logger.info("Lost messages " + messageId + " from " + process);
+					Request req = new Request(messageId);
+					Message lostMes = (Message) MessageHandler.requestMessage(getServerIp(), getServerPort(), req);
+					listView.getItems().add(String.format("%s =>   %s  ||   %s", lostMes.getPayload().getAuthor(),
+							lostMes.getPayload().getText(), lostMes.getReceiveDate()));
+				}
+				listView.getItems().add(String.format("%s =>    %s  ||   %s", chatMessage.getPayload().getAuthor(),
+						chatMessage.getPayload().getText(), chatMessage.getReceiveDate()));
+
+			}
+		}
+		return piggybackedVectorClock;
+	}
 
 	public String getServerIp() {
 		return serverIp;

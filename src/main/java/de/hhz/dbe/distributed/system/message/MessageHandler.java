@@ -85,7 +85,7 @@ public class MessageHandler {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public static Message requestMessage(String ip, int repPortClient, BaseMessage request)
+	public static BaseMessage requestMessage(String ip, int repPortClient, BaseMessage request)
 			throws IOException, ClassNotFoundException {
 //		Request request = new Request(messageId);
 		BaseMessage message = null;
@@ -94,37 +94,12 @@ public class MessageHandler {
 		os.writeObject(request);
 		// read response from leader
 		ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
-		message = (Message) is.readObject();
+		message = (MessageObject) is.readObject();
 		is.close();
 		os.close();
 		socket.close();
 
-		return (Message) message;
+		return (MessageObject) message;
 	}
 
-	/**
-	 * retransmit list of messages
-	 * 
-	 * @param ip
-	 * @param repPortClient
-	 * @param messageId
-	 * @return
-	 * @throws IOException
-	 * @throws ClassNotFoundException
-	 */
-	@SuppressWarnings("unchecked")
-	public static Vector<Message> requestListOfMessages(String ip, int repPortClient, BaseMessage request)
-			throws IOException, ClassNotFoundException {
-		Socket socket = new Socket(ip, repPortClient);
-		ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
-		os.writeObject(request);
-		// read response from leader
-		ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
-		Vector<Message> message = (Vector<Message>) is.readObject();
-		is.close();
-		os.close();
-		socket.close();
-
-		return (Vector<Message>) message;
-	}
 }

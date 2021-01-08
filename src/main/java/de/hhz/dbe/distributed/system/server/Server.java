@@ -8,7 +8,6 @@ import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -88,37 +87,10 @@ public class Server extends Thread {
 			case CHAT_MESSAGE:
 				try {
 					Message chatMessage = (Message) msg;
-					String process;
-					int seen, sent;
+
 					// check if the sender is different from current process
 					if (!chatMessage.getProcessId().equals(id.toString())) {
-						// for testing we miss messages with a certain probability
-						logger.info("Received message " + chatMessage.toString());
-
-						VectorClock piggybackedVectorClock = chatMessage.getPiggybackedVectorClock();
-						Iterator<String> it = piggybackedVectorClock.getProcessIds().iterator();
-
-						// compare local and received vector clock
-						while (it.hasNext()) {
-							process = it.next();
-							if (!process.equals(id.toString())) {
-								seen = vectorClock.get(process);
-								sent = piggybackedVectorClock.get(process);
-								if (seen <= sent - 1) {
-									// if vector clocks do not agree, then pull messages
-
-									for (int messageId = seen + 1; messageId < sent; messageId++) {
-										logger.info("Lost message " + messageId + " from " + process);
-										Request req = new Request(messageId);
-										MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), req);
-									}
-									// push first received message
-									if (process.equals(chatMessage.getProcessId())) {
-										addToHistory(chatMessage);
-									}
-								}
-							}
-						}
+						VectorClock piggybackedVectorClock = causalityHandling(chatMessage);
 						// merge local and received vector clocks
 						vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
 					}
@@ -151,6 +123,7 @@ public class Server extends Thread {
 				break;
 			}
 		}
+
 	};
 
 	public Server(int port, String multicast, int multiPort) throws IOException {
@@ -286,11 +259,15 @@ public class Server extends Thread {
 				InputStream in = client.getInputStream();
 				ObjectInputStream objectInputStream = new ObjectInputStream(in);
 				BaseMessage message = (BaseMessage) objectInputStream.readObject();
-
+				logger.info(String.format("Receive message from type %s", message.getMessageType()));
 				Participant part = message.getParticipant();
 				switch (message.getMessageType()) {
 				case HEARTBEAT:
-					logger.info(String.format("Heartbeath from: %s %s", part.getAddr(), part.getPort()));
+					if (leader!=null) {
+						logger.info(String.format("Leader is: %s %s", leader.getAddr(), leader.getPort()));
+					}
+					
+					logger.info(String.format("Heartbeat from: %s %s", part.getAddr(), part.getPort()));
 					break;
 				case START_ELECTION:
 					if (!part.getId().equals(id)) {
@@ -311,6 +288,10 @@ public class Server extends Thread {
 						// receive message from client and send it
 						sender.sendMessage(MessageHandler.getByteFrom(chatMessage));
 						history.add((Message) chatMessage);
+					}else {
+						ObjectOutputStream os = new ObjectOutputStream(client.getOutputStream());
+						MessageObject nesMaster = new MessageObject(MessageType.MASTER_ELECTED);
+						os.writeObject(nesMaster);						
 					}
 					break;
 				case MASTER_IN_ELECTION:
@@ -332,7 +313,8 @@ public class Server extends Thread {
 					// Request message
 					if (!message.getParticipant().getId().equals(id)) {
 						serverComponent.clear();
-						logger.info(String.format("Receive message from type %s", message.getMessageType()));
+						MessageObject request = new MessageObject(MessageType.REQUEST_MESSAGES);
+						MessageHandler.requestMessage(part.getAddr(), part.getPort(), request);
 						Participant participant = message.getNeighbor() == null ? part : message.getNeighbor();
 						serverComponent.add(participant);
 						startElection(part);
@@ -348,12 +330,20 @@ public class Server extends Thread {
 							+ " to retransmit message " + request.getMessageId() + " | found: " + (message != null));
 
 					os.close();
-					os.close();
 					break;
 				case REQUEST_MESSAGES:
 					ObjectOutputStream os1 = new ObjectOutputStream(client.getOutputStream());
-					os1.writeObject(history);
+					MessageObject requested = new MessageObject(MessageType.REQUESTED_MESSAGES);
+					requested.setMessgaes(history);
+					os1.writeObject(requested);
 					os1.close();
+					break;
+				case REQUESTED_MESSAGES:
+					MessageObject reqMsges = (MessageObject) message;
+					for (int i = 0; i < reqMsges.getMessgaes().size(); i++) {
+						vectorClock = VectorClock.mergeClocks(causalityHandling(reqMsges.getMessgaes().get(i)),
+								vectorClock);
+					}
 					break;
 				default:
 					break;
@@ -453,5 +443,37 @@ public class Server extends Thread {
 			}
 		}
 
+	}
+
+	private VectorClock causalityHandling(Message chatMessage) throws IOException, ClassNotFoundException {
+		String process;
+		int seen, sent;
+		logger.info("Received message " + chatMessage.toString());
+
+		VectorClock piggybackedVectorClock = chatMessage.getPiggybackedVectorClock();
+		Iterator<String> it = piggybackedVectorClock.getProcessIds().iterator();
+
+		// compare local and received vector clock
+		while (it.hasNext()) {
+			process = it.next();
+			if (!process.equals(id.toString())) {
+				seen = vectorClock.get(process);
+				sent = piggybackedVectorClock.get(process);
+				if (seen <= sent - 1) {
+					// if vector clocks do not agree, then pull messages
+
+					for (int messageId = seen + 1; messageId < sent; messageId++) {
+						logger.info("Lost message " + messageId + " from " + process);
+						Request req = new Request(messageId);
+						MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), req);
+					}
+					// push first received message
+					if (process.equals(chatMessage.getProcessId())) {
+						addToHistory(chatMessage);
+					}
+				}
+			}
+		}
+		return piggybackedVectorClock;
 	}
 }

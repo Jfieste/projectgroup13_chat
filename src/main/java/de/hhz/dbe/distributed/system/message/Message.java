@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.Set;
 import java.util.Vector;
 
-public class Message extends BaseMessage implements Serializable, Comparable<Message> {
+public class Message extends MessageObject implements Serializable, Comparable<Message> {
 	/**
 	 * 
 	 */
