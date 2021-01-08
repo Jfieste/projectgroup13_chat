@@ -141,7 +141,7 @@ public class Server extends Thread {
 		participant = new Participant(Inet4Address.getLocalHost().getHostAddress(), serverSocket.getLocalPort(), id,
 				true);
 		sender = new MulticastSender(this.multicast, multiPort);
-		Runnable harthbeat = new Runnable() {
+		Runnable hearthbeat = new Runnable() {
 
 			public void run() {
 				if (leader != null && !isLeader && !inElection) {
@@ -154,7 +154,7 @@ public class Server extends Thread {
 					} catch (IOException e) {
 						inElection = true;
 						isConnected = false;
-						logger.info(String.format("Somthing when wrong sending Harthbeat to the leader with the id: %s",
+						logger.info(String.format("Something when wrong sending Hearthbeat to the leader with the id: %s",
 								leader.getId()));
 						hearthbeatMessage = new MessageObject(MessageType.CONNECTION_LOST);
 						hearthbeatMessage.setParticipant(participant);
@@ -173,7 +173,7 @@ public class Server extends Thread {
 			}
 		};
 		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
-		service.scheduleAtFixedRate(harthbeat, 10, heartbeat_interval, TimeUnit.SECONDS);
+		service.scheduleAtFixedRate(hearthbeat, 10, heartbeat_interval, TimeUnit.SECONDS);
 	}
 
 	/**

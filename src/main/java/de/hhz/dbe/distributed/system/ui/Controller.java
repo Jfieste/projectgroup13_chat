@@ -86,7 +86,7 @@ public class Controller {
 
 	@FXML
 	void onEnterGroup(ActionEvent event) {
-		MessageObject reqMsg = new MessageObject(MessageType.REQUEST_MESSAGES);
+		final MessageObject reqMsg = new MessageObject(MessageType.REQUEST_MESSAGES);
 		chatClient = new Client(sender, receiver);
 		receiverThread.start();
 		dialog.setTitle("Chat Name");
@@ -101,13 +101,13 @@ public class Controller {
 			chatClient.joinGroup(conMsg);
 			Platform.runLater(new Runnable() {
 
-				@Override
+				
 				public void run() {
 
 					final ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
 
 					exec.schedule(new Runnable() {
-						@Override
+						
 						public void run() {
 							try {
 								MessageObject m = (MessageObject) MessageHandler.requestMessage(getServerIp(),
@@ -150,13 +150,13 @@ public class Controller {
 	@FXML
 	void onSend(ActionEvent event) {
 
-		Payload payload = new Payload();
+		final Payload payload = new Payload();
 		String text = textField.getText();
 		payload.setAuthor(userName);
 		payload.setText(text);
 		Platform.runLater(new Runnable() {
 
-			@Override
+			
 			public void run() {
 
 				boolean reDo = true;
