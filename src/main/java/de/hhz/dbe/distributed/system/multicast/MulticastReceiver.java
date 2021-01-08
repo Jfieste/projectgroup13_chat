@@ -15,8 +15,7 @@ import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
 public class MulticastReceiver implements Runnable {
 	private static Logger logger = LogManager.getLogger(MulticastReceiver.class);
 	private byte buffer[];
-	private int port;
-	private String hostname;
+	private boolean running = true;
 	private MessageProcessorIF messageProcessor;
 	private MulticastSocket socket;
 	InetAddress group;
@@ -24,8 +23,6 @@ public class MulticastReceiver implements Runnable {
 
 	public MulticastReceiver(String hostname, int port, MessageProcessorIF messageProcessor) throws IOException {
 		buffer = new byte[1024 * 10];
-		this.port = port;
-		this.hostname = hostname;
 		this.messageProcessor = messageProcessor;
 		socket = new MulticastSocket(port);
 		group = InetAddress.getByName(hostname);
@@ -37,6 +34,7 @@ public class MulticastReceiver implements Runnable {
 	public void leaveGroup() throws IOException {
 		socket.leaveGroup(group);
 		socket.close();
+		running = false;
 	}
 
 	public void listenUDPMessage() {
@@ -53,7 +51,7 @@ public class MulticastReceiver implements Runnable {
 	}
 
 	public void run() {
-		while (true) {
+		while (running) {
 			listenUDPMessage();
 
 		}

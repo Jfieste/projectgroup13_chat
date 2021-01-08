@@ -263,10 +263,6 @@ public class Server extends Thread {
 				Participant part = message.getParticipant();
 				switch (message.getMessageType()) {
 				case HEARTBEAT:
-					if (leader!=null) {
-						logger.info(String.format("Leader is: %s %s", leader.getAddr(), leader.getPort()));
-					}
-					
 					logger.info(String.format("Heartbeat from: %s %s", part.getAddr(), part.getPort()));
 					break;
 				case START_ELECTION:

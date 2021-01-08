@@ -100,14 +100,11 @@ public class Controller {
 		try {
 			chatClient.joinGroup(conMsg);
 			Platform.runLater(new Runnable() {
-
-				
 				public void run() {
 
 					final ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
 
 					exec.schedule(new Runnable() {
-						
 						public void run() {
 							try {
 								MessageObject m = (MessageObject) MessageHandler.requestMessage(getServerIp(),

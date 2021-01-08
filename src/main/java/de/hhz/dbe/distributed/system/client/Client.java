@@ -63,6 +63,8 @@ public class Client {
 	public void leaveGroup() {
 		try {
 			receiver.leaveGroup();
+			System.exit(0);
+			clientSocket.close();
 		} catch (IOException e) {
 			logger.debug("Error leaving the group: " + e.getMessage());
 		}
