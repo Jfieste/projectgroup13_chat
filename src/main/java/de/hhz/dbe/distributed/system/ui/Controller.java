@@ -3,8 +3,10 @@ package de.hhz.dbe.distributed.system.ui;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,6 +20,7 @@ import de.hhz.dbe.distributed.system.message.MessageObject;
 import de.hhz.dbe.distributed.system.message.MessageProcessorIF;
 import de.hhz.dbe.distributed.system.message.MessageType;
 import de.hhz.dbe.distributed.system.message.Payload;
+import de.hhz.dbe.distributed.system.message.Request;
 import de.hhz.dbe.distributed.system.message.VectorClock;
 import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
 import de.hhz.dbe.distributed.system.multicast.MulticastSender;
@@ -74,6 +77,7 @@ public class Controller {
 	private int retries = 3;
 	private int count = 0;
 	private Thread receiverThread;
+	private CountDownLatch latch = new CountDownLatch(5);
 
 	@FXML
 	void onEditName(ActionEvent event) {
@@ -82,7 +86,7 @@ public class Controller {
 
 	@FXML
 	void onEnterGroup(ActionEvent event) {
-	
+		MessageObject reqMsg = new MessageObject(MessageType.REQUEST_MESSAGES);
 		chatClient = new Client(sender, receiver);
 		receiverThread.start();
 		dialog.setTitle("Chat Name");
@@ -95,6 +99,28 @@ public class Controller {
 		autorName.setText(userName);
 		try {
 			chatClient.joinGroup(conMsg);
+			Platform.runLater(new Runnable() {
+
+				@Override
+				public void run() {
+					
+					List<Message> listOfMsg;
+					
+					try {
+						latch.wait();
+						listOfMsg = MessageHandler.requestListOfMessages(getServerIp(), getServerPort(), reqMsg);
+						for (int i = 0; i < listOfMsg.size(); i++) {
+							listView.getItems()
+									.add(String.format("%s>   %s  =>   %s", listOfMsg.get(i).getPayload().getAuthor(),
+											listOfMsg.get(i).getPayload().getText(),
+											listOfMsg.get(i).getReceiveDate()));
+						}
+					} catch (Exception e) {
+						logger.debug("Error transmitting message: " + e.getMessage());
+					}
+				}
+			});
+
 		} catch (Exception e) {
 			logger.debug("Error joining the group: " + e.getMessage());
 		}
@@ -185,7 +211,7 @@ public class Controller {
 			case SERVER_RESPONSE:
 				logger.info(String.format("Connection details %s: %s", message.getParticipant().getAddr(),
 						message.getParticipant().getPort()));
-
+				latch.countDown();
 				try {
 					Participant participant = ((MessageObject) message).getParticipant();
 					setServerIp(participant.getAddr());
@@ -220,18 +246,20 @@ public class Controller {
 								sent = piggybackedVectorClock.get(process);
 								if (seen <= sent - 1) {
 									// if vector clocks do not agree, then pull messages
-									
+
 									for (int messageId = seen + 1; messageId < sent; messageId++) {
-										logger.info(
-												"Lost messages " + messageId + " from " + process);
+										logger.info("Lost messages " + messageId + " from " + process);
+										Request req = new Request(messageId);
 										Message lostMes = MessageHandler.requestMessage(getServerIp(), getServerPort(),
-												messageId);
+												req);
 										listView.getItems()
-												.add(String.format("%s>   %s  =>   %s", lostMes.getPayload().getAuthor(),
+												.add(String.format("%s>   %s  =>   %s",
+														lostMes.getPayload().getAuthor(),
 														lostMes.getPayload().getText(), lostMes.getReceiveDate()));
 									}
 									listView.getItems()
-											.add(String.format("%s>    %s  =>   %s", chatMessage.getPayload().getAuthor(),
+											.add(String.format("%s>    %s  =>   %s",
+													chatMessage.getPayload().getAuthor(),
 													chatMessage.getPayload().getText(), chatMessage.getReceiveDate()));
 
 								}
@@ -247,8 +275,6 @@ public class Controller {
 						}
 					}
 				});
-				break;
-			case RESPONSE_LOST_MESSAGE:
 				break;
 			default:
 				break;

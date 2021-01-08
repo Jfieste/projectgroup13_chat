@@ -8,6 +8,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
+import java.util.Vector;
 
 public class MessageHandler {
 
@@ -75,6 +77,7 @@ public class MessageHandler {
 
 	/**
 	 * retransmit messages
+	 * 
 	 * @param ip
 	 * @param repPortClient
 	 * @param messageId
@@ -82,14 +85,14 @@ public class MessageHandler {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public static Message requestMessage(String ip, int repPortClient, int messageId)
+	public static Message requestMessage(String ip, int repPortClient, BaseMessage request)
 			throws IOException, ClassNotFoundException {
-		Request request = new Request(messageId);
+//		Request request = new Request(messageId);
 		BaseMessage message = null;
 		Socket socket = new Socket(ip, repPortClient);
 		ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
 		os.writeObject(request);
-      //read response from leader
+		// read response from leader
 		ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
 		message = (Message) is.readObject();
 		is.close();
@@ -97,5 +100,31 @@ public class MessageHandler {
 		socket.close();
 
 		return (Message) message;
+	}
+
+	/**
+	 * retransmit list of messages
+	 * 
+	 * @param ip
+	 * @param repPortClient
+	 * @param messageId
+	 * @return
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 */
+	@SuppressWarnings("unchecked")
+	public static Vector<Message> requestListOfMessages(String ip, int repPortClient, BaseMessage request)
+			throws IOException, ClassNotFoundException {
+		Socket socket = new Socket(ip, repPortClient);
+		ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
+		os.writeObject(request);
+		// read response from leader
+		ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
+		Vector<Message> message = (Vector<Message>) is.readObject();
+		is.close();
+		os.close();
+		socket.close();
+
+		return (Vector<Message>) message;
 	}
 }

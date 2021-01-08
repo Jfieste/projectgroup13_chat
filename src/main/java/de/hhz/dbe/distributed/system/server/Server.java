@@ -8,6 +8,7 @@ import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -66,7 +67,7 @@ public class Server extends Thread {
 					connectionDetails.setParticipant(participant);
 					if (msg.getParticipant() == null && isLeader && !inElection) {
 						sender.sendMessage(MessageHandler.getByteFrom(connectionDetails));
-					} else if (msg.getParticipant() != null ) {
+					} else if (msg.getParticipant() != null) {
 						if (isLeader && !inElection && !msg.getParticipant().getId().equals(id))
 							if (msg.getParticipant().isServerComponent()) {
 								if (!serverComponent.isEmpty()) {
@@ -108,7 +109,8 @@ public class Server extends Thread {
 
 									for (int messageId = seen + 1; messageId < sent; messageId++) {
 										logger.info("Lost message " + messageId + " from " + process);
-										MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), messageId);
+										Request req = new Request(messageId);
+										MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), req);
 									}
 									// push first received message
 									if (process.equals(chatMessage.getProcessId())) {
@@ -198,7 +200,7 @@ public class Server extends Thread {
 			}
 		};
 		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
-		service.scheduleAtFixedRate(harthbeat, 20, heartbeat_interval, TimeUnit.SECONDS);
+		service.scheduleAtFixedRate(harthbeat, 10, heartbeat_interval, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -327,6 +329,7 @@ public class Server extends Thread {
 
 					break;
 				case SERVER_RESPONSE:
+					// Request message
 					if (!message.getParticipant().getId().equals(id)) {
 						serverComponent.clear();
 						logger.info(String.format("Receive message from type %s", message.getMessageType()));
@@ -340,22 +343,17 @@ public class Server extends Thread {
 					Message mesgeToResent = findMessageInHistory(request.getMessageId());
 					ObjectOutputStream os = new ObjectOutputStream(client.getOutputStream());
 
-					try {
-						os.writeObject(mesgeToResent);
-						logger.info("Received request from " + client.getInetAddress().getHostAddress()
-								+ " to retransmit message " + request.getMessageId() + " | found: "
-								+ (message != null));
+					os.writeObject(mesgeToResent);
+					logger.info("Received request from " + client.getInetAddress().getHostAddress()
+							+ " to retransmit message " + request.getMessageId() + " | found: " + (message != null));
 
-						os.close();
-					} catch (IOException e) {
-						logger.error("IOException in RepeaterHandler Thread " + e.getMessage());
-					}
+					os.close();
 					os.close();
 					break;
-				case RESPONSE_LOST_MESSAGE:
-					Message requested = (Message) message;
-					addToHistory(requested);
-					logger.info("Pulled message " + requested.toString());
+				case REQUEST_MESSAGES:
+					ObjectOutputStream os1 = new ObjectOutputStream(client.getOutputStream());
+					os1.writeObject(history);
+					os1.close();
 					break;
 				default:
 					break;
