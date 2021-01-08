@@ -2,6 +2,7 @@ package de.hhz.dbe.distributed.system.ui;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Properties;
@@ -153,7 +154,6 @@ public class Controller {
 		payload.setText(text);
 		Platform.runLater(new Runnable() {
 
-			
 			public void run() {
 
 				boolean reDo = true;
@@ -282,17 +282,19 @@ public class Controller {
 			seen = vectorClock.get(process);
 			sent = piggybackedVectorClock.get(process);
 			if (seen <= sent - 1) {
-				// if vector clocks do not agree, then pull messages
 
+				String pattern = "EEEEE dd-MM-yy HH:mm:ss";
+				SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+				// if vector clocks do not agree, then pull messages
 				for (int messageId = seen + 1; messageId < sent; messageId++) {
 					logger.info("Lost messages " + messageId + " from " + process);
 					Request req = new Request(messageId);
 					Message lostMes = (Message) MessageHandler.requestMessage(getServerIp(), getServerPort(), req);
 					listView.getItems().add(String.format("%s =>   %s  ||   %s", lostMes.getPayload().getAuthor(),
-							lostMes.getPayload().getText(), lostMes.getReceiveDate()));
+							lostMes.getPayload().getText(), simpleDateFormat.format(lostMes.getReceiveDate())));
 				}
 				listView.getItems().add(String.format("%s =>    %s  ||   %s", chatMessage.getPayload().getAuthor(),
-						chatMessage.getPayload().getText(), chatMessage.getReceiveDate()));
+						chatMessage.getPayload().getText(), simpleDateFormat.format(chatMessage.getReceiveDate())));
 
 			}
 		}
