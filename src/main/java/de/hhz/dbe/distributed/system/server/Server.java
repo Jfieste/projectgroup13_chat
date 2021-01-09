@@ -37,7 +37,7 @@ import de.hhz.dbe.distributed.system.multicast.MulticastSender;
 import de.hhz.dbe.distributed.system.utils.LoadProperties;
 
 /**
- * @author Project Group 13 The Server receives message and send via multi cast
+ * @author Project Group 13 The Server receives message and send via multicast
  *         to chat participant
  */
 public class Server extends Thread {
@@ -79,9 +79,9 @@ public class Server extends Thread {
 					}
 
 				} catch (IOException e) {
-					logger.error(String.format("Somthing went wrong sending connection details: %s", e));
+					logger.error(String.format("Something went wrong sending connection details: %s", e));
 				} catch (Exception e) {
-					logger.error(String.format("Somthing went wrong sending connection details: %s", e));
+					logger.error(String.format("Something went wrong sending connection details: %s", e));
 				}
 				break;
 			case CHAT_MESSAGE:
