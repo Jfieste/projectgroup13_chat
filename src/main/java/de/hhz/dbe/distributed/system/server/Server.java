@@ -145,7 +145,7 @@ public class Server extends Thread {
 
 			public void run() {
 				if (leader != null && !isLeader && !inElection) {
-					logger.info(String.format("Harthbeat"));
+					logger.info(String.format("Heartbeat"));
 					BaseMessage hearthbeatMessage;
 					try {
 						hearthbeatMessage = new MessageObject(MessageType.HEARTBEAT);
