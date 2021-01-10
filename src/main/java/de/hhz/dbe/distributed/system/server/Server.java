@@ -337,13 +337,6 @@ public class Server extends Thread {
 					os1.writeObject(requested);
 					os1.close();
 					break;
-//				case REQUESTED_MESSAGES:
-//					MessageObject reqMsges = (MessageObject) message;
-//					for (int i = 0; i < reqMsges.getMessgaes().size(); i++) {
-//						VectorClock piggybackedVectorClock = causalityHandling(reqMsges.getMessgaes().get(i));
-//						vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
-//					}
-//					break;
 				default:
 					break;
 				}
