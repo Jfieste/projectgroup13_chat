@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import de.hhz.dbe.distributed.system.client.Participant;
 import de.hhz.dbe.distributed.system.message.BaseMessage;
 import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.MessageHandler;

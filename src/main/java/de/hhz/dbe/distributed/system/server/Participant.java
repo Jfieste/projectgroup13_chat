@@ -1,4 +1,4 @@
-package de.hhz.dbe.distributed.system.client;
+package de.hhz.dbe.distributed.system.server;
 
 import java.io.Serializable;
 import java.util.UUID;

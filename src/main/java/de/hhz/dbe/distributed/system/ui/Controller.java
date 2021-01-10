@@ -14,7 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import de.hhz.dbe.distributed.system.client.Client;
-import de.hhz.dbe.distributed.system.client.Participant;
 import de.hhz.dbe.distributed.system.message.BaseMessage;
 import de.hhz.dbe.distributed.system.message.Message;
 import de.hhz.dbe.distributed.system.message.MessageHandler;
@@ -26,6 +25,7 @@ import de.hhz.dbe.distributed.system.message.Request;
 import de.hhz.dbe.distributed.system.message.VectorClock;
 import de.hhz.dbe.distributed.system.multicast.MulticastReceiver;
 import de.hhz.dbe.distributed.system.multicast.MulticastSender;
+import de.hhz.dbe.distributed.system.server.Participant;
 import de.hhz.dbe.distributed.system.utils.LoadProperties;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;

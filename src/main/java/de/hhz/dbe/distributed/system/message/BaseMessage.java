@@ -3,7 +3,7 @@ package de.hhz.dbe.distributed.system.message;
 import java.io.Serializable;
 import java.util.Date;
 
-import de.hhz.dbe.distributed.system.client.Participant;
+import de.hhz.dbe.distributed.system.server.Participant;
 
 public abstract class BaseMessage implements Serializable {
 	/**
