@@ -164,7 +164,7 @@ public class Controller {
 						if (msg == null) {
 							reDo = false;
 							textField.clear();
-						} else if (msg.getMessageType() == MessageType.MASTER_ELECTED) {
+						} else if (msg.getMessageType() == MessageType.NEW_MASTER_ELECTED) {
 							try {
 								chatClient.joinGroup(conMsg);
 							} catch (Exception e1) {

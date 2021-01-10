@@ -154,8 +154,9 @@ public class Server extends Thread {
 					} catch (IOException e) {
 						inElection = true;
 						isConnected = false;
-						logger.info(String.format("Something when wrong sending Hearthbeat to the leader with the id: %s",
-								leader.getId()));
+						logger.info(
+								String.format("Something when wrong sending Hearthbeat to the leader with the id: %s",
+										leader.getId()));
 						hearthbeatMessage = new MessageObject(MessageType.CONNECTION_LOST);
 						hearthbeatMessage.setParticipant(participant);
 						try {
@@ -284,10 +285,10 @@ public class Server extends Thread {
 						// receive message from client and send it
 						sender.sendMessage(MessageHandler.getByteFrom(chatMessage));
 						history.add((Message) chatMessage);
-					}else {
+					} else {
 						ObjectOutputStream os = new ObjectOutputStream(client.getOutputStream());
-						MessageObject nesMaster = new MessageObject(MessageType.MASTER_ELECTED);
-						os.writeObject(nesMaster);						
+						MessageObject nesMaster = new MessageObject(MessageType.NEW_MASTER_ELECTED);
+						os.writeObject(nesMaster);
 					}
 					break;
 				case MASTER_IN_ELECTION:
@@ -309,8 +310,11 @@ public class Server extends Thread {
 					// Request message
 					if (!message.getParticipant().getId().equals(id)) {
 						serverComponent.clear();
-						MessageObject request = new MessageObject(MessageType.REQUEST_MESSAGES);
-						MessageHandler.requestMessage(part.getAddr(), part.getPort(), request);
+						MessageObject obj = (MessageObject) MessageHandler.requestMessage(part.getAddr(), part.getPort(), new MessageObject(MessageType.REQUEST_MESSAGES));
+						for (int i = 0; i < obj.getMessgaes().size(); i++) {
+							VectorClock piggybackedVectorClock = causalityHandling(obj.getMessgaes().get(i));
+							vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
+						}
 						Participant participant = message.getNeighbor() == null ? part : message.getNeighbor();
 						serverComponent.add(participant);
 						startElection(part);
@@ -334,13 +338,13 @@ public class Server extends Thread {
 					os1.writeObject(requested);
 					os1.close();
 					break;
-				case REQUESTED_MESSAGES:
-					MessageObject reqMsges = (MessageObject) message;
-					for (int i = 0; i < reqMsges.getMessgaes().size(); i++) {
-						vectorClock = VectorClock.mergeClocks(causalityHandling(reqMsges.getMessgaes().get(i)),
-								vectorClock);
-					}
-					break;
+//				case REQUESTED_MESSAGES:
+//					MessageObject reqMsges = (MessageObject) message;
+//					for (int i = 0; i < reqMsges.getMessgaes().size(); i++) {
+//						VectorClock piggybackedVectorClock = causalityHandling(reqMsges.getMessgaes().get(i));
+//						vectorClock = VectorClock.mergeClocks(piggybackedVectorClock, vectorClock);
+//					}
+//					break;
 				default:
 					break;
 				}
@@ -415,6 +419,7 @@ public class Server extends Thread {
 				return;
 			}
 			if (elected.compareTo(participant) == 0) {
+				logger.info(String.format("The current leader is: %s => %s", elected.getId() , elected.getPort()));
 				inElection = false;
 				isLeader = true;
 				message = new MessageObject(MessageType.MASTER_ELECTED);
@@ -461,7 +466,7 @@ public class Server extends Thread {
 					for (int messageId = seen + 1; messageId < sent; messageId++) {
 						logger.info("Lost message " + messageId + " from " + process);
 						Request req = new Request(messageId);
-						MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), req);
+						addToHistory((Message) MessageHandler.requestMessage(leader.getAddr(), leader.getPort(), req));
 					}
 					// push first received message
 					if (process.equals(chatMessage.getProcessId())) {
