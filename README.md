@@ -6,5 +6,6 @@ Information sharing takes place in various everyday situations, for example talk
 
 ## Client Server Architecture
 
-![Architecture Model](https://user-images.githubusercontent.com/65391937/104368388-4a5d3600-551c-11eb-81a6-666aadcd9104.JPG)
+![Architecture Model](https://user-images.githubusercontent.com/65391937/104368705-b9d32580-551c-11eb-9bf8-aeb70661c4eb.JPG)
+
 
