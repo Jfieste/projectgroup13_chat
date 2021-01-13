@@ -1,3 +1,5 @@
+![Uni stuttagart](https://user-images.githubusercontent.com/65391937/104476785-ea6c9b00-55c0-11eb-8993-d32af5471e0e.jpg)
+
 # Group Chat Application 
 
 In this study project we will implement a distributed chat application with multiple client and server and demonstrate the topics from the distributed systems lessons
