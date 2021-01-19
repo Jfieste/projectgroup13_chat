@@ -20,6 +20,3 @@ In addition, we have a user interface where participants can log in at the group
 
 ![Architecture Model](https://user-images.githubusercontent.com/65391937/104368705-b9d32580-551c-11eb-9bf8-aeb70661c4eb.JPG)
 
-Launch the application
-
-Run configuration over 
